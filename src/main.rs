@@ -39,7 +39,7 @@ struct Cli {
     #[arg(short, long)]
     recursive: bool,
 
-    /// Remove directories and their contents recursively
+    /// Forces deletion without moving files to the trash directory
     #[arg(short, long, value_name = "FILE")]
     force: Option<Vec<PathBuf>>,
 

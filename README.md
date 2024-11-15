@@ -91,7 +91,7 @@ sudo nixos-rebuild switch --flake .
 - ~~golb pattern isn't working~~
 
 ## Planned Features
-- roxide --revert:  Restores files from the trash directory to their original location.
+- ~~roxide revert:  Restores files from the trash directory to their original location.~~
 - roxide --gc <TIME_PERIOD>:  Performs garbage collection on trashed files, automatically clearing files older than a specified period.
-- roxide -f:  Forces deletion without moving files to the trash directory.
+- ~~roxide -f:  Forces deletion without moving files to the trash directory.~~
 - roxide -s:  Shreds files for secure deletion.
