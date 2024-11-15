@@ -1,45 +1,6 @@
-<!-- markdownlint-configure-file {
-  "MD013": {
-    "code_blocks": false,
-    "tables": false
-  },
-  "MD033": false,
-  "MD041": false
-} -->
+# roxide
 
-<div align="center">
-
-<sup>Special thanks to:</sup>
-
-  <div>
-    <img src="contrib/warp.png" width="230" alt="Warp" />
-  </div>
-  <b>
-  </b>
-  <div>
-  </div>
-</a>
-
-<hr />
-
-# zoxide
-
-[![crates.io][crates.io-badge]][crates.io]
-[![Downloads][downloads-badge]][releases]
-[![Built with Nix][builtwithnix-badge]][builtwithnix]
-
-zoxide is a **smarter cd command**, inspired by z and autojump.
-
-It remembers which directories you use most frequently, so you can "jump" to
-them in just a few keystrokes.<br />
-zoxide works on all major shells.
-
-[Getting started](#getting-started) •
-[Installation](#installation) •
-[Configuration](#configuration) •
-[Integrations](#third-party-integrations)
-
-</div>
+`roxide` is a lightweight, high-performance alternative to the traditional `rm` command, designed with an emphasis on speed and data preservation. Unlike standard rm, which permanently deletes files, rid safely moves them to a designated "`trash`" directory. This approach enables efficient and fast file removal without risking unintended data loss.
 
 ## Getting started
 
