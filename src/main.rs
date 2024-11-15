@@ -1,12 +1,21 @@
 use clap::{Parser, Subcommand};
 use log::trace;
-use rid::core::remove_files;
-use rid::garbage_collection::gc;
-use rid::history::write_history;
-use rid::revert::read_json_history;
-use rid::wild_cards::wild_card;
+
 use std::fs::remove_dir_all;
 use std::path::{Path, PathBuf};
+
+use self::core::remove_files;
+use self::garbage_collection::gc;
+use self::history::write_history;
+use self::revert::read_json_history;
+use self::wild_cards::wild_card;
+
+pub mod core;
+pub mod garbage_collection;
+pub mod history;
+pub mod revert;
+pub mod utils;
+pub mod wild_cards;
 
 #[derive(Parser)]
 #[command(
