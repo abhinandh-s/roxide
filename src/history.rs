@@ -37,9 +37,9 @@ fn test_function_01() {
 
 // https://thelinuxcode.com/rust-json-example/
 pub fn write_history() -> Result<(), Box<dyn Error>> {
-    // let hist_file = "rid_history.json".to_owned();
+    // let hist_file = "roxide_history.json".to_owned();
     // let contents = fs::read_to_string(hist_file)?;
-    let file = File::open("rid_history.json").expect("where is the rid_history.json file?");
+    let file = File::open("roxide_history.json").expect("where is the roxide_history.json file?");
     let _reader = BufReader::new(file);
     // let history_from_json: HistoryItems =
     // serde_json::from_reader(reader).expect("reader failed to read the json data");
@@ -55,8 +55,8 @@ pub fn write_history() -> Result<(), Box<dyn Error>> {
     from: from.to_str().unwrap().to_string(),
     to: to.to_str().unwrap().to_string()
     };
-    let filename = "rid_history.json";
-    let history_file = Path::new("rid_history.json");
+    let filename = "roxide_history.json";
+    let history_file = Path::new("roxide_history.json");
 
     let mut history_data: Vec<HistoryItems> = Vec::new();
     if history_file.exists() {

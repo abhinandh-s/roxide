@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fs::{self, rename, OpenOptions};
+use std::fs::{self, create_dir_all, rename, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::vec;
@@ -25,7 +25,14 @@ pub fn write_log(
     original_path: String,
     trash_path: String,
 ) -> anyhow::Result<()> {
-    let log_file = data_dir().unwrap().join("rid/rid_history.log");
+    let log_dir = data_dir().unwrap().join("roxide");
+    if !log_dir.exists() {
+        create_dir_all(log_dir).unwrap();
+    }
+    let log_file = data_dir().unwrap().join("roxide/roxide_history.log");
+    if !log_file.exists() {
+        File::create(&log_file).unwrap();
+    }
     let mut file = OpenOptions::new()
         .create(true) // Create the file if it doesn't exist
         .append(true) // Append to the file if it already exists
@@ -40,7 +47,7 @@ pub fn write_log(
 }
 
 pub fn read_json_history() -> Result<(), Box<dyn Error>> {
-    let log_file = data_dir().unwrap().join("rid/rid_history.log");
+    let log_file = data_dir().unwrap().join("roxide/roxide_history.log");
     let file = fs::File::open(&log_file)?;
     let reader = BufReader::new(file);
 
@@ -89,7 +96,7 @@ mod test {
             "-------------",
             "-------------",
             "20241112214434",
-            "/home/abhi/projects/abhi/github/rid/file004.org",
+            "/home/abhi/projects/abhi/github/roxide/file004.org",
             "/home/abhi/.local/share/Trash/files/file004.2024-11-12_21:44:34.org",
             "20241112214434",
             "----------------------------",
@@ -99,7 +106,7 @@ mod test {
             &dummy_log.iter().nth_back(4).unwrap().to_string()
         );
         assert_eq!(
-            "/home/abhi/projects/abhi/github/rid/file004.org",
+            "/home/abhi/projects/abhi/github/roxide/file004.org",
             &dummy_log.iter().nth_back(3).unwrap().to_string()
         );
         assert_eq!(

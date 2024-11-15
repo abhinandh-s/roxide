@@ -7,7 +7,7 @@ build:
   cargo build --release
 
 remote-run:
-  nix run github:abhi-xyz/rid -- help
+  nix run github:abhi-xyz/roxide -- help
 
 release:
   git tag v{{ver}}

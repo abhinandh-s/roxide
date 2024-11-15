@@ -20,15 +20,15 @@ pub mod wild_cards;
 #[derive(Parser)]
 #[command(
     version,
-    name = "rid",
+    name = "roxide",
     author = "Abhinandh S <ugabhi@proton.me>",
-    about = "rid",
-    //long_about = "By default, rid does not remove directories.Use the --recursive (-r) option to remove each listed directory, too, along with all of its contents.\n
+    about = "roxide",
+    //long_about = "By default, roxide does not remove directories.Use the --recursive (-r) option to remove each listed directory, too, along with all of its contents.\n
     //    To remove a file whose name starts with a '-', for example '-foo',\n
     //    use one of these commands:\n
-    //    rid -- -foo\n
-    //    rid ./-foo\n
-    //    If you use rid to remove a file, it might be possible to recover the file/directory.\n
+    //    roxide -- -foo\n
+    //    roxide ./-foo\n
+    //    If you use roxide to remove a file, it might be possible to recover the file/directory.\n
     //    Files are trashed to XDG specified trash directory.\n
     //    Example:\n
     //    `$HOME`/.local/share/Trash/files\n"

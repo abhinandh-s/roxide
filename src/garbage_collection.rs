@@ -27,7 +27,7 @@ impl Metadata for Trash {
 }
 
 pub fn gc(_date: &i8) -> Result<(), Box<dyn Error>> {
-    remove_file(data_dir().unwrap().join("rid/rid_history.log"))?;
+    remove_file(data_dir().unwrap().join("roxide/roxide_history.log"))?;
     Ok(())
 }
 

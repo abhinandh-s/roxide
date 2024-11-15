@@ -91,7 +91,7 @@ pub fn remove_files(items: Vec<PathBuf>, recursive: bool, verbose: bool) -> anyh
                 }
                 info!("normal remove");
                 if item.is_dir() {
-                    eprintln!("{} is a directory.\nTry: rid -r", item.display());
+                    eprintln!("{} is a directory.\nTry: roxide -r", item.display());
                     return Ok(());
                 }
                 fs::rename(&item, &trash_path).with_context(|| {
@@ -113,7 +113,7 @@ pub fn remove_files(items: Vec<PathBuf>, recursive: bool, verbose: bool) -> anyh
             }
         } else {
             eprintln!(
-                "rid: cannot remove '{}': no such file or directory",
+                "roxide: cannot remove '{}': no such file or directory",
                 &item.display()
             );
             return Ok(());
