@@ -80,11 +80,7 @@ fn main() {
     if let (Some(pattern_str), Some(path)) = (cli.pattern, cli.path) {
         trace!("Pattern: {:#?}, Path: {:#?}", pattern_str, path);
         pattern(path.to_str().unwrap().to_string(), pattern_str).unwrap(); 
-    } else {
-        eprintln!("For pattern to work path must be provided with -d flag.\nEg: roxide -p .org -d directory/");
     }
-
-
 
     if let Some(forece_file) = cli.force {
         for i in forece_file {
