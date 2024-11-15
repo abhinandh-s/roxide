@@ -5,8 +5,6 @@ use std::fs::remove_dir_all;
 use std::path::{Path, PathBuf};
 
 use self::core::remove_files;
-use self::garbage_collection::gc;
-use self::history::write_history;
 use self::revert::read_json_history;
 use self::wild_cards::wild_card;
 
@@ -49,26 +47,12 @@ struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
-    /// For testing porpose wont work
-    #[arg(short, long)]
-    json: Option<bool>,
-
     #[command(subcommand)]
     command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Turn debugging information on
-    Debug {
-        #[arg(short, long)]
-        list: bool,
-    },
-    /// alpha stage
-    Gc {
-        // #[arg(short, long)]
-        date: i8,
-    },
     /// revert the previous remove
     Revert {
         //    num: i8,
@@ -99,24 +83,7 @@ fn main() {
             }
         }
     }
-
-    if let Some(t) = cli.json {
-        if t {
-            write_history().unwrap();
-        } else {
-            println!("try true");
-        }
-    }
-
     match &cli.command {
-        Some(Commands::Debug { list }) => {
-            if *list {
-                println!("Printing testing lists...");
-            } else {
-                println!("Not printing testing lists...");
-            }
-        }
-        Some(Commands::Gc { date }) => gc(date).unwrap(),
         Some(Commands::Revert {}) => {
             read_json_history().unwrap();
         } // Some(Commands::Revert {  }) => read_history(), // write_log(num).unwrap(),
