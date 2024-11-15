@@ -1,0 +1,41 @@
+name: Cargo Build & Test
+
+on:
+  push:
+  pull_request:
+
+env: 
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    name: Rust project - latest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      
+      - name: Display PWD
+        run: echo "PWD is ${{ github.workspace }}"
+      
+      - name: List files in PWD
+        run: ls ${{ github.workspace }}
+      
+      - run: mkdir -p ~/.local/share/Trash/files
+      - run: cargo build --verbose
+      - run: mkdir -p ~/.local/share/Trash/files
+      - run: mkdir -p ~/.local/share/rid
+      - run: touch ~/.local/share/rid/rid_history.log
+      - run: ls ~/.local/share/Trash/files
+      - run: |
+          export RUST_BACKTRACE=1
+          cargo test -- --nocapture # --verbose
+
+      - name: Display PWD after test
+        run: ls ${{ github.workspace }}

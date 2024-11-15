@@ -1,1 +1,5 @@
+rid_history.json
+./test_0*
+/result
+.direnv/
 /target
