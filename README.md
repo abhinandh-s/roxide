@@ -2,15 +2,16 @@
 
 `roxide` is a lightweight, high-performance alternative to the traditional `rm` command, designed with an emphasis on speed and data preservation. Unlike standard rm, which permanently deletes files, roxide safely moves them to a designated "`trash`" directory. This approach enables efficient and fast file removal without risking unintended data loss.
 
-## Getting started
 
-![Tutorial][tutorial]
+**Note**: I am an amateur Rust programmer, so while this code might not be the most refined, it prioritizes safety and has been thoroughly tested. If you have ideas for improvement or notice any issues, contributions are very welcome! This project is open to suggestions, code reviews, and pull requests from developers of all experience levels.
 
 
 ## Features
 - `roxide` _filename_ : files will moved to `trash dir`. ie, $HOME/.local/share/Trash/files/
 - `roxide --revert` : restors perviously removed file/directory
 
+
+# Getting started
 
 ## Installation
 
