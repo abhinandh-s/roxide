@@ -6,16 +6,19 @@
 **Note**: I am an amateur Rust programmer, so while this code might not be the most refined, it prioritizes safety and has been thoroughly tested. If you have ideas for improvement or notice any issues, contributions are very welcome! This project is open to suggestions, code reviews, and pull requests from developers of all experience levels.
 
 
-## Features
+## Getting started
+
 - `roxide` _filename_ : files will moved to `trash dir`. ie, $HOME/.local/share/Trash/files/
-- `roxide --revert` : restors perviously removed file/directory
+- `roxide revert` : restors perviously removed file/directory
+- `roxide -r | --recursive` : Remove directories and their contents recursively
+- `roxide -f | --force` : Remove without moving to trash directory
+- `roxide -v | --verbose` : will print the file name and its out path
 
 
-# Getting started
 
 ## Installation
 
-## Build
+### Build
 
 ```bash
 git clone https://github.com/abhi-xyz/roxide.git --depth=1 
@@ -24,6 +27,11 @@ cargo build --release
 cp target/release/roxide /usr/local/bin/
 ```
 
+### cargo
+
+```bash
+cargo install roxide
+```
 
 ### Nixos
 
