@@ -1,5 +1,5 @@
 <div id="header" align="center">
-  <img src="./assets/roxide_logo.webp" width="100"/>
+  <img src="./assets/roxide_logo.webp" width="300"/>
 </div>
 
 
