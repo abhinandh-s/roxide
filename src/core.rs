@@ -45,7 +45,7 @@ impl<'a> Trash<'a> {
     }
 }
 
-pub fn remove_files(items: Vec<PathBuf>, recursive: bool, verbose: bool) -> anyhow::Result<()> {
+pub fn remove_files(items: Vec<PathBuf>, recursive: bool, verbose: bool, log: bool) -> anyhow::Result<()> {
     if verbose {
         info!("verbose mode on!");
     }
@@ -76,12 +76,14 @@ pub fn remove_files(items: Vec<PathBuf>, recursive: bool, verbose: bool) -> anyh
                         &trash_path.display()
                     )
                 })?;
-                write_log(
-                    id,
-                    item_path.to_str().unwrap().to_string(),
-                    trash_path.to_str().unwrap().to_string(),
-                )
-                .unwrap();
+                if log {
+                    write_log(
+                        id,
+                        item_path.to_str().unwrap().to_string(),
+                        trash_path.to_str().unwrap().to_string(),
+                    )
+                        .unwrap();
+                }
                 if verbose {
                     println!("Trashed {} to {}", &item.display(), &trash_path.display());
                 }
@@ -148,7 +150,7 @@ mod tests {
             fs::write(i, "some contents for the files").expect("Cant create files");
             assert!(fs::exists(i).expect("Can't check existence of file glob_test_file_00x.txt"));
         }
-        remove_files(files_for_glob_test.clone(), false, true).unwrap();
+        remove_files(files_for_glob_test.clone(), false, true, true).unwrap();
         for i in files_for_glob_test {
             assert!(!fs::exists(i).expect("Can't check existence of file tmp_file.txt"));
         }
@@ -165,7 +167,7 @@ mod tests {
             fs::write(i, "some contents for the files").expect("Cant create files");
             assert!(fs::exists(i).expect("Can't check existence of file tmp_file.txt"));
         }
-        remove_files(single_files.clone(), false, true).unwrap();
+        remove_files(single_files.clone(), false, true, true).unwrap();
         for i in &single_files {
             assert!(!fs::exists(i).expect("Can't check existence of file tmp_file.txt"));
         }
@@ -182,7 +184,7 @@ mod tests {
             assert!(fs::exists(i).expect("Can't check existence of file tmp_file.txt"));
             pretty_assertions::assert_eq!(1, 1);
         }
-        remove_files(single_files.clone(), false, true).unwrap();
+        remove_files(single_files.clone(), false, true, true).unwrap();
         for i in &single_files {
             assert!(!fs::exists(i).expect("Can't check existence of file tmp_file.txt"));
         }
@@ -197,13 +199,14 @@ mod tests {
         fs::write("some_other/dir/test.txt", "some contents for testing").unwrap();
         let v3 = PathBuf::from("some_other/dir/test.txt");
         let single_files = vec![v3];
-        remove_files(single_files, false, true).expect("Err with my function");
+        remove_files(single_files, false, true, true).expect("Err with my function");
         assert!(!fs::exists("some_other/dir/test.txt")
             .expect("Can't check existence of file some/dir/for/testing/tmp_file.txt"));
         remove_files(
             vec![path::Path::new("some_other").to_path_buf()],
             true,
             true,
+            true
         )
         .expect("Err with my function");
         assert!(!fs::exists("some_other")
@@ -221,10 +224,11 @@ mod tests {
             fs::write(".some_hidden/dir/test.txt", "some contents for testing").unwrap();
             let v3 = PathBuf::from(".some_hidden/dir/test.txt");
             let a_single_file_from_hidden_dir = vec![v3];
-            remove_files(a_single_file_from_hidden_dir, false, true).expect("Err with my function remove_file_from_hidden_dir_test");
+            remove_files(a_single_file_from_hidden_dir, false, true,true).expect("Err with my function remove_file_from_hidden_dir_test");
             assert!(!fs::exists(".some_hidden/dir/test.txt").expect("Can't check existence of file some/dir/for/testing/tmp_file.txt"));
             remove_files(
                 vec![path::Path::new(".some_hidden").to_path_buf()],
+                true,
                 true,
                 true,
             )
@@ -242,7 +246,7 @@ mod tests {
         fs::create_dir_all("some/dir/for/testing").unwrap();
         let test_dir = vec![PathBuf::from("some")];
         fs::write("some/test.txt", "some contents for testing").unwrap();
-        remove_files(test_dir, true, true).expect("Err with my function");
+        remove_files(test_dir, true, true, true).expect("Err with my function");
         assert!(!fs::exists("some")
             .expect("Can't check existence of file some/dir/for/testing/tmp_file.txt"));
         assert!(!fs::exists("some/dir/for")
@@ -259,7 +263,7 @@ mod tests {
         fs::create_dir_all(".some/dir/for/testing").unwrap();
         let test_dir = vec![PathBuf::from(".some")];
         fs::write(".some/test.txt", "some contents for testing").unwrap();
-        remove_files(test_dir, true, true).expect("Err with my function");
+        remove_files(test_dir, true, true, true).expect("Err with my function");
         assert!(!fs::exists(".some")
             .expect("Can't check existence of file some/dir/for/testing/tmp_file.txt"));
         assert!(!fs::exists(".some/dir/for")
