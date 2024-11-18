@@ -1,10 +1,14 @@
 # CHANGELOG.md
 
-## 0.1.8 (2024-11-17)
+## 0.1.8 (2024-11-18)
+
+Features:
+  
+  - pattern flag now supports recursive and non-recursive remove
 
 Bugfixes:
 
-  - pattern -flag not working
+  - pattern -flag interfering with other flags
   - cant remove a directory which is inside a directory
 
 ## 0.1.7 (2024-11-15)
