@@ -89,6 +89,8 @@ sudo nixos-rebuild switch --flake .
 ```
 
 ## known bugs
+- won't warn about git directory
+- can't use sudo 
 - ~~golb pattern isn't working~~
 - ~~pattern -flag interfering with other flags~~
 - ~~cant remove a directory which is inside a directory~~

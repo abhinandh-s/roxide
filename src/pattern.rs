@@ -13,10 +13,7 @@ pub fn filter_files_by_pattern(items: Vec<PathBuf>, pattern: String) -> Vec<DirE
             continue;
         }
         if !item.is_dir() {
-            eprintln!(
-                "roxide: skipping directory '{}'",
-                item.display()
-            );
+            eprintln!("roxide: skipping directory '{}'", item.display());
             continue;
         }
         let walker = WalkDir::new(&item).into_iter();
@@ -26,7 +23,11 @@ pub fn filter_files_by_pattern(items: Vec<PathBuf>, pattern: String) -> Vec<DirE
             if entry.path().is_dir() {
                 continue;
             }
-            let condition = entry.file_name().to_str().map(|m| m.contains(&pattern.to_string())).unwrap_or(false);
+            let condition = entry
+                .file_name()
+                .to_str()
+                .map(|m| m.contains(&pattern.to_string()))
+                .unwrap_or(false);
             if condition {
                 // println!("{}", entry.path().display());
                 filtered_items.push(entry);
@@ -38,7 +39,6 @@ pub fn filter_files_by_pattern(items: Vec<PathBuf>, pattern: String) -> Vec<DirE
     no_items
 }
 
-
 pub fn is_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()
@@ -46,4 +46,3 @@ pub fn is_hidden(entry: &DirEntry) -> bool {
         .map(|s| s.starts_with("."))
         .unwrap_or(false)
 }
-

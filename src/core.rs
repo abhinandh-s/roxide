@@ -1,6 +1,11 @@
+#![allow(unused_labels)]
+// when using sudo there is no trash dir for root to programs will fail for behave differenlty
+// on my tests it moved files to home dir
+
 use std::env::current_dir;
-use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::{fs, io};
 
 use anyhow::Ok;
 use log::*;
@@ -16,8 +21,10 @@ pub struct Trash<'a> {
 
 impl<'a> Trash<'a> {
     pub fn get_log_id(&self) -> (String, String) {
-        (current_time().format("%Y%m%d%H%M%S").to_string(),
-            current_time().format("%Y-%m-%d_%H:%M:%S").to_string())
+        (
+            current_time().format("%Y%m%d%H%M%S").to_string(),
+            current_time().format("%Y-%m-%d_%H:%M:%S").to_string(),
+        )
     }
     pub fn trash_name(&self, log_id: String) -> String {
         let trash_file = trash_dir()
@@ -59,32 +66,89 @@ impl<'a> Trash<'a> {
     }
 }
 
+/// Enum, determining when the `rm` will prompt the user about the file deletion
+#[allow(dead_code)]
+#[derive(Eq, PartialEq, Clone, Copy)]
+pub enum InteractiveMode {
+    /// Never prompt
+    Never,
+    /// Prompt once before removing more than three files
+    /// or when removing recursivly.
+    Once,
+    // Prompt before every removal
+    Always,
+    /// Prompt only on write-protected files
+    PromptProtected,
+}
+
+#[allow(dead_code)]
+static OPT_DIR: &str = "dir";
+#[allow(dead_code)]
+static OPT_INTERACTIVE: &str = "interactive";
+#[allow(dead_code)]
+static OPT_FORCE: &str = "force";
+#[allow(dead_code)]
+static OPT_RECURSIVE: &str = "recursive";
+#[allow(dead_code)]
+static OPT_VERBOSE: &str = "verbose";
+
+#[allow(dead_code)]
+static ARG_FILES: &str = "files";
+
+/// not tested
+#[allow(dead_code)]
+fn prompt_yes_or_no() -> String {
+    let mut choice = String::new();
+    print!("Enter 'yes' or 'y' to confirm, 'no' or 'n' to cancel: ");
+    io::stdout().flush().unwrap();
+    io::stdin()
+        .read_line(&mut choice)
+        .expect("Failed to read line");
+    choice = choice.trim().to_lowercase();
+    match choice.as_str() {
+        "yes" | "y" | "no" | "n" => {
+            println!("Your choice: {}", choice);
+        }
+        _ => {
+            eprintln!("Invalid choice: {}", choice);
+        }
+    }
+    choice
+}
+
+#[allow(clippy::cognitive_complexity)]
 fn non_recursive_pattern_matching(
     items: Vec<PathBuf>,
-    pattern: Option<String>
+    pattern: Option<String>,
 ) -> anyhow::Result<(), anyhow::Error> {
     trace!("hello from non_recursive_pattern_matching");
     let pat = pattern.to_owned().unwrap();
     let p = pat.as_str();
     trace!("pattern for matching: {:?}", p);
-    for item in  items {
+    'iter_arg_items: for item in items {
         if item.exists() {
-
-            for entry in fs::read_dir(&item)? {
+            'iter_dir_contents: for entry in fs::read_dir(&item)? {
                 let entry = entry?;
                 let path = entry.path();
                 if path.is_file() {
                     let file_name = path.file_name().unwrap();
-                    let condition=  file_name.to_str().map(|f| f.contains(p)).unwrap_or(false);
+                    let condition = file_name.to_str().map(|f| f.contains(p)).unwrap_or(false);
                     if condition {
                         let file_name = path.file_name().unwrap();
                         let p = Path::new(file_name);
-                        let trash = Trash { file: p, };
+                        let trash = Trash { file: p };
                         // let id = trash.get_log_id();
-                        let item_path = current_dir().unwrap().join(&item).join(path.file_name().unwrap());
+                        let item_path = current_dir()
+                            .unwrap()
+                            .join(&item)
+                            .join(path.file_name().unwrap());
                         // let trash_path = trash_dir().join(trash.trash_name(id.1));
-                        fs::rename(&item_path, trash_dir().join(trash.trash_name(trash.get_log_id().1))).unwrap();
-                    } 
+                        fs::rename(
+                            &item_path,
+                            trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                        )
+                        .unwrap();
+                    }
                 } else {
                     trace!("skipping directory: {:?}", path);
                 }
@@ -125,36 +189,50 @@ pub fn remove_files(
                 let file_name = item.path().file_name().unwrap();
                 trace!("file_name: {:?}", file_name);
                 let p = Path::new(file_name);
-                let trash =  Trash { file: p, };
-                let id = trash.get_log_id(); 
+                let trash = Trash { file: p };
+                let id = trash.get_log_id();
                 trace!("id: {:?}", id);
                 let item_path = current_dir().unwrap().join(item.path());
                 trace!("item path: {:?}", item_path);
                 let trash_path = trash_dir().join(trash.trash_name(id.1));
                 trace!("trash path: {:?}", trash_path);
-                fs::rename(&item_path, trash_dir().join(trash.trash_name(trash.get_log_id().1))).unwrap();
+                fs::rename(
+                    &item_path,
+                    trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                )
+                .unwrap();
             }
         }
         (false, true) => {
             for item in items {
                 if item.exists() {
                     let item = item.as_path();
-                    let trash = Trash {
-                        file: item,
-                    };
+                    let trash = Trash { file: item };
                     let id = trash.get_log_id();
                     trace!("id: {:?}", id);
                     let item_path = current_dir().unwrap().join(item);
                     let trash_path = trash_dir().join(trash.trash_name(id.1));
                     trace!("trash path: {:?}", trash_path);
-                    fs::rename(&item_path, trash_dir().join(trash.trash_name(trash.get_log_id().1))).unwrap();
-                    if verbose { println!("Trashed {} to {}",item.display(), trash_dir().join(trash.trash_name(trash.get_log_id().1)).display()) }
+                    fs::rename(
+                        &item_path,
+                        trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                    )
+                    .unwrap();
+                    if verbose {
+                        println!(
+                            "Trashed {} to {}",
+                            item.display(),
+                            trash_dir()
+                                .join(trash.trash_name(trash.get_log_id().1))
+                                .display()
+                        )
+                    }
                     write_log(
                         id.0,
                         item_path.to_str().unwrap().to_string(),
                         trash_path.to_str().unwrap().to_string(),
                     )
-                        .unwrap();
+                    .unwrap();
                 } else {
                     eprintln!(
                         "roxide: cannot remove '{}': no such file or directory",
@@ -172,22 +250,32 @@ pub fn remove_files(
                         return Ok(());
                     }
                     let item = item.as_path();
-                    let trash = Trash {
-                        file: item,
-                    };
+                    let trash = Trash { file: item };
                     let id = trash.get_log_id();
                     trace!("id: {:?}", id);
                     let item_path = current_dir().unwrap().join(item);
                     let trash_path = trash_dir().join(trash.trash_name(id.1));
                     trace!("trash path: {:?}", trash_path);
-                    fs::rename(&item_path, trash_dir().join(trash.trash_name(trash.get_log_id().1))).unwrap();
-                    if verbose { println!("Trashed {} to {}",item.display(), trash_dir().join(trash.trash_name(trash.get_log_id().1)).display()) }
+                    fs::rename(
+                        &item_path,
+                        trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                    )
+                    .unwrap();
+                    if verbose {
+                        println!(
+                            "Trashed {} to {}",
+                            item.display(),
+                            trash_dir()
+                                .join(trash.trash_name(trash.get_log_id().1))
+                                .display()
+                        )
+                    }
                     write_log(
                         id.0,
                         item_path.to_str().unwrap().to_string(),
                         trash_path.to_str().unwrap().to_string(),
                     )
-                        .unwrap();
+                    .unwrap();
                 } else {
                     eprintln!(
                         "roxide: cannot remove '{}': no such file or directory",
@@ -196,6 +284,46 @@ pub fn remove_files(
                     return Ok(());
                 }
             }
+        }
+    }
+    Ok(())
+}
+
+#[allow(dead_code, unused_variables)]
+fn core_pattern(pattern: &str) {
+    println!("pattern: {}", pattern);
+}
+
+#[allow(dead_code)]
+fn core_remove(
+    items: Vec<PathBuf>,
+    recursive: bool,
+    verbose: bool,
+) -> anyhow::Result<(), anyhow::Error> {
+    if verbose {
+        println!("recursive: {:?}", recursive);
+    }
+    'iter_through_arg_items: for item in items {
+        if item.exists() {
+            let exact_file_name = item.file_name().unwrap();
+            trace!("exact_file_name: {}", exact_file_name.to_string_lossy());
+            if recursive {
+                // recursive remove
+                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+            } else if item.is_dir() {
+                // if we got a directory in non-recursive remove
+                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+                return Ok(());
+            } else {
+                // non-recursive remove
+                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+            }
+        } else {
+            eprintln!(
+                "roxide: cannot remove '{}': no such file or directory",
+                &item.display()
+            );
+            return Ok(());
         }
     }
     Ok(())

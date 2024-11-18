@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## 0.1.9 (2024-11-18)
+
+minor bug fix
+
 ## 0.1.8 (2024-11-18)
 
 Features:
