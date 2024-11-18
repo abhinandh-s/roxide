@@ -10,7 +10,6 @@
 
 **Note**: I am an amateur Rust programmer, so while this code might not be the most refined, it prioritizes safety and has been thoroughly tested. If you have ideas for improvement or notice any issues, contributions are very welcome! This project is open to suggestions, code reviews, and pull requests from developers of all experience levels.
 
-
 ## Getting started
 
 - `roxide file.txt`: files will moved to `trash dir`. ie, $HOME/.local/share/Trash/files/

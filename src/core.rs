@@ -63,10 +63,10 @@ fn non_recursive_pattern_matching(
     items: Vec<PathBuf>,
     pattern: Option<String>
 ) -> anyhow::Result<(), anyhow::Error> {
-    println!("hello from non_recursive_pattern_matching");
+    trace!("hello from non_recursive_pattern_matching");
     let pat = pattern.to_owned().unwrap();
     let p = pat.as_str();
-    println!("pattern for matching: {:?}", p);
+    trace!("pattern for matching: {:?}", p);
     for item in  items {
         if item.exists() {
 
@@ -86,7 +86,7 @@ fn non_recursive_pattern_matching(
                         fs::rename(&item_path, trash_dir().join(trash.trash_name(trash.get_log_id().1))).unwrap();
                     } 
                 } else {
-                    println!("skipping directory: {:?}", path);
+                    trace!("skipping directory: {:?}", path);
                 }
             }
         } else {
