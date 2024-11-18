@@ -91,6 +91,8 @@ sudo nixos-rebuild switch --flake .
 
 ## known bugs
 - ~~golb pattern isn't working~~
+- ~~pattern -flag interfering with other flags~~
+- ~~cant remove a directory which is inside a directory~~
 
 ## Planned Features
 - ~~roxide revert:  Restores files from the trash directory to their original location.~~
