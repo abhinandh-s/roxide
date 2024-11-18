@@ -14,13 +14,14 @@
 ## Getting started
 
 - `roxide file.txt`: files will moved to `trash dir`. ie, $HOME/.local/share/Trash/files/
-- `roxide revert` : restors perviously removed file/directory
+- `roxide revert` : restores perviously removed file/directory to its pervious path 
 - `roxide -r | --recursive` : Remove directories and their contents recursively
 - `roxide -f | --force` : Remove without moving to trash directory
 - `roxide -v | --verbose` : will print the file name and its out path
-- `roxide -p .txt -d some/dir/`: will recursively files matching the pattern from some/dir
+- `roxide some/dir/ -p .pdf`: will remove files matching the pattern from some/dir
+- `roxide some/dir/ -rp .pdf`: will recursively remove files matching the pattern from some/dir
 
-
+> `revert` cant bring back files removed using patterns but you can still access it from Trash dir
 
 ## Installation
 

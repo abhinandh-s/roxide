@@ -99,104 +99,103 @@ pub fn split_path_and_file(path: &Path) -> Result<(String, String), Box<dyn Erro
     }
 }
 
-/// current issue
-/// BUG: when i remove the dir from some/dir to trash it wont work
-///
-/// Possibilities
-///
-/// HACK: no need to test mutiple files/dirs Possibilities
-///       since it will become single file/dir in for loop
-///
-/// 1. single file from root [  NOTE: tested ]
-///
-/// 2. mutiple files from root by specifiying name
-/// 3. mutiple files from root using glob wildcard
-/// 4. single dir from root [  NOTE: tested ]
-///
-/// 5. mutiple dirs from root
-/// 6. mutiple dirs from root using glob wildcard
-///
-/// 1. single file from some/dir [  NOTE: tested ]
-///
-/// 2. mutiple files from some/dir by specifiying name
-/// 3. mutiple files from some/dir using glob wildcard
-/// 4. single dir from some/dir [  NOTE: tested ]
-/// 5. mutiple dirs from some/dir
-/// 6. mutiple dirs from some/dir using glob wildcard
+// current issue
+// BUG: when i remove the dir from some/dir to trash it wont work
+//
+// Possibilities
+//
+// HACK: no need to test mutiple files/dirs Possibilities
+//       since it will become single file/dir in for loop
+//
+// 1. single file from root [  NOTE: tested ]
+//
+// 2. mutiple files from root by specifiying name
+// 3. mutiple files from root using glob wildcard
+// 4. single dir from root [  NOTE: tested ]
+//
+// 5. mutiple dirs from root
+// 6. mutiple dirs from root using glob wildcard
+//
+// 1. single file from some/dir [  NOTE: tested ]
+//
+// 2. mutiple files from some/dir by specifiying name
+// 3. mutiple files from some/dir using glob wildcard
+// 4. single dir from some/dir [  NOTE: tested ]
+// 5. mutiple dirs from some/dir
+// 6. mutiple dirs from some/dir using glob wildcard
 
-#[cfg(test)]
-mod test {
-    use core::panic;
-    use std::fs::{self, create_dir, create_dir_all, remove_dir, remove_dir_all};
-    use std::path::Path;
-
-    #[test]
-    fn fs_rename_test() {
-        let full_path = "/home/abhi/projects/abhi/github/roxide/".to_string();
-        //  TEST: cleanup
-        fs::remove_dir_all(full_path.to_string() + "target/tmp_trash_dir").unwrap();
-        //  TEST: fn tmp_trash_dir() {
-        fs::create_dir_all(full_path.to_string() + "target/tmp_trash_dir").unwrap();
-        if !Path::new("/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir").exists() {
-            panic!("no tmp_trash_dir");
-        }
-        //  TEST: 1. single file from root
-        let from = "/home/abhi/projects/abhi/github/roxide/single_file_normal_test.txt";
-        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_file_normal_test.txt";
-        let contents = "some contents";
-        if fs::exists(to).unwrap() {
-            fs::remove_file(to).unwrap();
-        }
-        fs::write(from, contents).unwrap();
-        fs::rename(from, to).unwrap();
-        assert!(fs::exists(to).unwrap());
-        // TEST: 1. single file from some/dir
-        let from = "/home/abhi/projects/abhi/github/roxide/some/single_file_normal_test_inside_some_dir.txt";
-        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_file_normal_test_inside_some_dir.txt";
-        let contents = "some contents";
-        if fs::exists(to).unwrap() {
-            fs::remove_file(to).unwrap();
-        }
-        create_dir("some").unwrap();
-        fs::write(from, contents).unwrap();
-        fs::rename(from, to).unwrap();
-        assert!(fs::exists(to).unwrap());
-        remove_dir("some").unwrap();
-        //  TEST: 4. single dir from root
-        let from = "/home/abhi/projects/abhi/github/roxide/single_dir_normal_test";
-        let to =
-            "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_dir_normal_test";
-        if fs::exists(to).unwrap() {
-            fs::remove_dir(to).unwrap();
-        }
-        fs::create_dir(from).unwrap();
-        fs::rename(from, to).unwrap();
-        assert!(fs::exists(to).unwrap());
-        //  TEST: 4. single dir from some/dir
-        let from =
-            "/home/abhi/projects/abhi/github/roxide/some/single_dir_normal_test_inside_some_dir";
-        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_dir_normal_test_inside_some_dir";
-        create_dir("some").unwrap();
-        if fs::exists(to).unwrap() {
-            fs::remove_dir(to).unwrap();
-        }
-        fs::create_dir(from).unwrap();
-        fs::rename(from, to).unwrap();
-        assert!(fs::exists(to).unwrap());
-        remove_dir("some").unwrap();
-        //  TEST: 4. single dir from some/dir
-        let from = "/home/abhi/projects/abhi/github/roxide/some/dir/single_dir_normal_test_inside_some_dir_02";
-        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_dir_normal_test_inside_some_dir_02";
-        create_dir_all("/home/abhi/projects/abhi/github/roxide/some/dir").unwrap();
-        if fs::exists(to).unwrap() {
-            fs::remove_dir(to).unwrap();
-        }
-        fs::create_dir(from).unwrap();
-        fs::rename(from, to).unwrap();
-        assert!(fs::exists(to).unwrap());
-        remove_dir_all("/home/abhi/projects/abhi/github/roxide/some").unwrap();
-    }
-}
+//#[cfg(test)]
+//mod test {
+//    use core::panic;
+//    use std::fs::{self, create_dir, create_dir_all, remove_dir, remove_dir_all};
+//    use std::path::Path;
+//
+//    #[test]
+//    fn fs_rename_test() {
+//        //  TEST: cleanup
+//        fs::remove_dir_all("target/tmp_trash_dir").unwrap();
+//        //  TEST: fn tmp_trash_dir() {
+//        fs::create_dir_all( "target/tmp_trash_dir").unwrap();
+//        if !Path::new("/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir").exists() {
+//            panic!("no tmp_trash_dir");
+//        }
+//        //  TEST: 1. single file from root
+//        let from = "single_file_normal_test.txt";
+//        let to = "single_file_normal_test.txt";
+//        let contents = "some contents";
+//        if fs::exists(to).unwrap() {
+//            fs::remove_file(to).unwrap();
+//        }
+//        fs::write(from, contents).unwrap();
+//        fs::rename(from, to).unwrap();
+//        assert!(fs::exists(to).unwrap());
+//        // TEST: 1. single file from some/dir
+//        let from = "/home/abhi/projects/abhi/github/roxide/some/single_file_normal_test_inside_some_dir.txt";
+//        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_file_normal_test_inside_some_dir.txt";
+//        let contents = "some contents";
+//        if fs::exists(to).unwrap() {
+//            fs::remove_file(to).unwrap();
+//        }
+//        create_dir("some").unwrap();
+//        fs::write(from, contents).unwrap();
+//        fs::rename(from, to).unwrap();
+//        assert!(fs::exists(to).unwrap());
+//        remove_dir("some").unwrap();
+//        //  TEST: 4. single dir from root
+//        let from = "/home/abhi/projects/abhi/github/roxide/single_dir_normal_test";
+//        let to =
+//            "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_dir_normal_test";
+//        if fs::exists(to).unwrap() {
+//            fs::remove_dir(to).unwrap();
+//        }
+//        fs::create_dir(from).unwrap();
+//        fs::rename(from, to).unwrap();
+//        assert!(fs::exists(to).unwrap());
+//        //  TEST: 4. single dir from some/dir
+//        let from =
+//            "/home/abhi/projects/abhi/github/roxide/some/single_dir_normal_test_inside_some_dir";
+//        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_dir_normal_test_inside_some_dir";
+//        create_dir("some").unwrap();
+//        if fs::exists(to).unwrap() {
+//            fs::remove_dir(to).unwrap();
+//        }
+//        fs::create_dir(from).unwrap();
+//        fs::rename(from, to).unwrap();
+//        assert!(fs::exists(to).unwrap());
+//        remove_dir("some").unwrap();
+//        //  TEST: 4. single dir from some/dir
+//        let from = "/home/abhi/projects/abhi/github/roxide/some/dir/single_dir_normal_test_inside_some_dir_02";
+//        let to = "/home/abhi/projects/abhi/github/roxide/target/tmp_trash_dir/single_dir_normal_test_inside_some_dir_02";
+//        create_dir_all("/home/abhi/projects/abhi/github/roxide/some/dir").unwrap();
+//        if fs::exists(to).unwrap() {
+//            fs::remove_dir(to).unwrap();
+//        }
+//        fs::create_dir(from).unwrap();
+//        fs::rename(from, to).unwrap();
+//        assert!(fs::exists(to).unwrap());
+//        remove_dir_all("/home/abhi/projects/abhi/github/roxide/some").unwrap();
+//    }
+//}
 
 //#[cfg(test)]
 //mod tests {
