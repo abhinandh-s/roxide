@@ -3,13 +3,13 @@
 // on my tests it moved files to home dir
 
 use std::env::current_dir;
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
+use std::fs;
 
 use anyhow::Ok;
 use log::*;
 
+use crate::core::args::Cli;
 use crate::pattern::filter_files_by_pattern;
 use crate::revert::write_log;
 use crate::utils::{current_time, trash_dir};
@@ -31,9 +31,11 @@ impl<'a> Trash<'a> {
             .join(self.file)
             .try_exists()
             .expect("Cant check whether trash dir exists or not");
+        error!("trash_name from trash_name function: {}", self.file.file_stem().unwrap().to_str().unwrap());
         let file_stem = self.file.file_stem().unwrap().to_str().unwrap();
         let file_ext = self.file.extension().and_then(|e| e.to_str());
-
+        let file_name_to_check = self.file.file_name().unwrap();
+        let trash_file_to_check = trash_dir().join(file_name_to_check).exists();
         let trash_file_name = |stem: &str, ext: Option<&str>| -> String {
             match ext {
                 Some(e) => format!("{}.{}.{}", stem, log_id, e),
@@ -41,9 +43,9 @@ impl<'a> Trash<'a> {
             }
         };
 
-        if !trash_file {
+        if !trash_file_to_check {
             debug!(
-                "impl Trash: {:#?}",
+                "impl Trash struct: {:#?}",
                 self.file
                     .file_name()
                     .map(|f| f.to_string_lossy().to_string())
@@ -56,7 +58,7 @@ impl<'a> Trash<'a> {
                 .expect("failed to set trash name")
         } else {
             let trash_name = trash_file_name(file_stem, file_ext);
-            debug!("impl trash: {:#?}", trash_name);
+            debug!("impl Trash struct else: {:#?}", trash_name);
             self.file
                 .with_file_name(trash_name)
                 .to_str()
@@ -64,56 +66,6 @@ impl<'a> Trash<'a> {
                 .to_string()
         }
     }
-}
-
-/// Enum, determining when the `rm` will prompt the user about the file deletion
-#[allow(dead_code)]
-#[derive(Eq, PartialEq, Clone, Copy)]
-pub enum InteractiveMode {
-    /// Never prompt
-    Never,
-    /// Prompt once before removing more than three files
-    /// or when removing recursivly.
-    Once,
-    // Prompt before every removal
-    Always,
-    /// Prompt only on write-protected files
-    PromptProtected,
-}
-
-#[allow(dead_code)]
-static OPT_DIR: &str = "dir";
-#[allow(dead_code)]
-static OPT_INTERACTIVE: &str = "interactive";
-#[allow(dead_code)]
-static OPT_FORCE: &str = "force";
-#[allow(dead_code)]
-static OPT_RECURSIVE: &str = "recursive";
-#[allow(dead_code)]
-static OPT_VERBOSE: &str = "verbose";
-
-#[allow(dead_code)]
-static ARG_FILES: &str = "files";
-
-/// not tested
-#[allow(dead_code)]
-fn prompt_yes_or_no() -> String {
-    let mut choice = String::new();
-    print!("Enter 'yes' or 'y' to confirm, 'no' or 'n' to cancel: ");
-    io::stdout().flush().unwrap();
-    io::stdin()
-        .read_line(&mut choice)
-        .expect("Failed to read line");
-    choice = choice.trim().to_lowercase();
-    match choice.as_str() {
-        "yes" | "y" | "no" | "n" => {
-            println!("Your choice: {}", choice);
-        }
-        _ => {
-            eprintln!("Invalid choice: {}", choice);
-        }
-    }
-    choice
 }
 
 #[allow(clippy::cognitive_complexity)]
@@ -173,17 +125,15 @@ fn non_recursive_pattern_matching(
 #[allow(unused_variables)]
 pub fn remove_files(
     items: Vec<PathBuf>,
-    recursive: bool,
-    pattern: Option<String>,
-    verbose: bool,
+    args: &Cli 
 ) -> anyhow::Result<()> {
-    match (pattern.is_some(), recursive) {
+    match (args.pattern.is_some(), args.recursive) {
         (true, false) => {
-            let pat = pattern.to_owned().unwrap();
-            non_recursive_pattern_matching(items, pattern).unwrap();
+            let pat = args.pattern.to_owned().unwrap();
+            non_recursive_pattern_matching(items, args.pattern.clone()).unwrap();
         }
         (true, true) => {
-            let p = pattern.to_owned().unwrap();
+            let p = args.pattern.to_owned().unwrap();
             let filtered_items = filter_files_by_pattern(items, p);
             for item in filtered_items {
                 let file_name = item.path().file_name().unwrap();
@@ -211,14 +161,15 @@ pub fn remove_files(
                     let id = trash.get_log_id();
                     trace!("id: {:?}", id);
                     let item_path = current_dir().unwrap().join(item);
+                    trace!("item path recursive true: {:?}", item_path);
                     let trash_path = trash_dir().join(trash.trash_name(id.1));
-                    trace!("trash path: {:?}", trash_path);
+                    trace!("trash path recursive true: {:?}", trash_path);
                     fs::rename(
                         &item_path,
                         trash_dir().join(trash.trash_name(trash.get_log_id().1)),
                     )
                     .unwrap();
-                    if verbose {
+                    if args.verbose {
                         println!(
                             "Trashed {} to {}",
                             item.display(),
@@ -261,7 +212,7 @@ pub fn remove_files(
                         trash_dir().join(trash.trash_name(trash.get_log_id().1)),
                     )
                     .unwrap();
-                    if verbose {
+                    if args.verbose {
                         println!(
                             "Trashed {} to {}",
                             item.display(),
@@ -289,42 +240,37 @@ pub fn remove_files(
     Ok(())
 }
 
-#[allow(dead_code, unused_variables)]
-fn core_pattern(pattern: &str) {
-    println!("pattern: {}", pattern);
-}
 
-#[allow(dead_code)]
-fn core_remove(
-    items: Vec<PathBuf>,
-    recursive: bool,
-    verbose: bool,
-) -> anyhow::Result<(), anyhow::Error> {
-    if verbose {
-        println!("recursive: {:?}", recursive);
-    }
-    'iter_through_arg_items: for item in items {
-        if item.exists() {
-            let exact_file_name = item.file_name().unwrap();
-            trace!("exact_file_name: {}", exact_file_name.to_string_lossy());
-            if recursive {
-                // recursive remove
-                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
-            } else if item.is_dir() {
-                // if we got a directory in non-recursive remove
-                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
-                return Ok(());
-            } else {
-                // non-recursive remove
-                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
-            }
-        } else {
-            eprintln!(
-                "roxide: cannot remove '{}': no such file or directory",
-                &item.display()
-            );
-            return Ok(());
-        }
-    }
-    Ok(())
-}
+//fn core_remove(
+//    items: Vec<PathBuf>,
+//    recursive: bool,
+//    verbose: bool,
+//) -> anyhow::Result<(), anyhow::Error> {
+//    if verbose {
+//        println!("recursive: {:?}", recursive);
+//    }
+//    'iter_through_arg_items: for item in items {
+//        if item.exists() {
+//            let exact_file_name = item.file_name().unwrap();
+//            trace!("exact_file_name: {}", exact_file_name.to_string_lossy());
+//            if recursive {
+//                // recursive remove
+//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+//            } else if item.is_dir() {
+//                // if we got a directory in non-recursive remove
+//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+//                return Ok(());
+//            } else {
+//                // non-recursive remove
+//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+//            }
+//        } else {
+//            eprintln!(
+//                "roxide: cannot remove '{}': no such file or directory",
+//                &item.display()
+//            );
+//            return Ok(());
+//        }
+//    }
+//    Ok(())
+//}
