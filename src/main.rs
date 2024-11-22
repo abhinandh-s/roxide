@@ -4,14 +4,14 @@ use std::fs::remove_dir_all;
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
+use self::core::rm::core_remove;
 use self::revert::read_json_history;
-use self::utils_core::remove_files;
+// use self::utils_core::remove_files;
 
 pub mod core;
 
 pub mod garbage_collection;
 pub mod history;
-mod pattern;
 pub mod revert;
 pub mod utils;
 pub mod utils_core;
@@ -21,7 +21,8 @@ fn main() {
     let cli = Cli::parse();
 
     if let Some(items) = &cli.file {
-        remove_files(items.to_vec(), &cli).unwrap();
+        core_remove(items.to_vec(), &cli).unwrap();
+        // remove_files(items.to_vec(), &cli).unwrap();
     }
 
     if let Some(forece_file) = cli.force {

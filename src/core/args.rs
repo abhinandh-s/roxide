@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 use std::path::PathBuf;
 
@@ -26,6 +26,10 @@ pub struct Cli {
     #[arg(short, long)]
     pub recursive: bool,
 
+    /// whether to prompt before removals
+    #[arg(short, long)]
+    pub interactive: Option<InteractiveMode>,
+
     /// remove files matching the pattern. revert will not work on patterns, provide -rp for recursive remove
     #[arg(short = 'p', long = "pattern", value_name = "PATTERN")] // roxide some/dir -p .pdf
     pub pattern: Option<String>, // Accept the file-matching pattern
@@ -49,14 +53,14 @@ pub enum Commands {
 }
 
 /// Enum, determining when the `rm` will prompt the user about the file deletion
-#[derive(Eq, PartialEq, Clone, Copy)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum InteractiveMode {
     /// Never prompt
     Never,
     /// Prompt once before removing more than three files
     /// or when removing recursivly.
     Once,
-    // Prompt before every removal
+    /// Prompt before every removal
     Always,
     /// Prompt only on write-protected files
     PromptProtected,

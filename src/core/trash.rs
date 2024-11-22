@@ -35,7 +35,6 @@ impl<'a> Trash<'a> {
                     .map(|f| f.to_string_lossy().to_string())
                     .unwrap()
             );
-            // self.file.file_name().unwrap().to_str().unwrap().to_string()
             self.file
                 .file_name()
                 .map(|t| t.to_string_lossy().to_string())

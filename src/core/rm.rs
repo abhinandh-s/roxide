@@ -1,21 +1,85 @@
 #![allow(unused_labels)]
-// when using sudo there is no trash dir for root to programs will fail for behave differenlty
-// on my tests it moved files to home dir
+#![allow(unused_imports)]
 
-//use std::env::current_dir;
-//use std::fs;
-//use std::path::{Path, PathBuf};
-//
-//use anyhow::Ok;
-//use log::*;
-//
-//use crate::core::args::Cli;
-//use crate::core::trash::Trash;
-//use crate::pattern::filter_files_by_pattern;
-//use crate::revert::write_log;
-//use crate::utils::trash_dir;
-//use crate::verbose;
+use std::env::current_dir;
+use std::ffi::OsStr;
+use std::{fs, io, usize};
+use std::io::{BufRead, Read};
+use std::path::{Path, PathBuf};
 
+use anyhow::Context;
+use log::*;
+use walkdir::{DirEntry, WalkDir};
+
+use crate::core::filter::filter_paths;
+use crate::core::trash::Trash;
+use crate::revert::write_log;
+use crate::utils::trash_dir;
+use crate::{dev_debug, show_error, verbose};
+
+use super::args::{Cli, InteractiveMode};
+
+
+pub fn handle_interactive(items: Vec<PathBuf>, args: &Cli) {
+    if args.interactive == Some(InteractiveMode::Once) && (args.recursive || items.len() > 3) {
+        println!("remove 1 argument recursively? (y / n) ");
+
+        let mut guess = String::new();
+        io::stdin().read_line(&mut guess).expect("Failed to read line");
+        trace!("You guessed: {}", guess);
+    }
+
+    match args.interactive {
+        Some(InteractiveMode::Never) => {}
+        Some(InteractiveMode::Once) => {}
+        Some(InteractiveMode::Always) => {}
+        Some(InteractiveMode::PromptProtected) => {}
+        None => {}
+    }
+    
+}
+
+
+pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
+    let f = filter_paths(items.clone(), args).unwrap();
+    handle_interactive(items, args);
+    trace!("{:#?}", f);
+    Ok(())
+}
+
+//#[allow(unused_labels)]
+//pub fn prev_core_remove(
+//    items: Vec<PathBuf>,
+//    args: &Cli,
+//) -> anyhow::Result<(), anyhow::Error> {
+//    verbose!(args.verbose, "recursive: {:?}", args.recursive);
+//    'iter_through_arg_items: for item in items {
+//        if item.exists() {
+//            let exact_file_name = item.file_name().unwrap();
+//            trace!("exact_file_name: {}", exact_file_name.to_string_lossy());
+//            if args.recursive {
+//                // recursive remove
+//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+//            } else if item.is_dir() {
+//                // if we got a directory in non-recursive remove
+//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+//                continue;
+//            } else {
+//                // non-recursive remove
+//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
+//            }
+//        } else {
+//            eprintln!(
+//                "roxide: cannot remove '{}': no such file or directory",
+//                &item.display()
+//            );
+//            continue;
+//        }
+//    }
+//    Ok(())
+//}
+//
+//
 //#[allow(clippy::cognitive_complexity)]
 //fn non_recursive_pattern_matching(
 //    items: Vec<PathBuf>,
@@ -63,13 +127,13 @@
 //    }
 //    Ok(())
 //}
-
-// remove_files
-// the core function of the whole crate
-// accepts arguments as Vec<PathBuf> so we can take multiple dirs/files in single command
-// eg: roxide -r some/dir another/dir
 //
-// takes Vec<PathBuf> and flatten all the
+///// remove_files
+///// the core function of the whole crate
+///// accepts arguments as Vec<PathBuf> so we can take multiple dirs/files in single command
+///// eg: roxide -r some/dir another/dir
+/////
+///// takes Vec<PathBuf> and flatten all the
 //pub fn remove_files(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<()> {
 //    match (args.pattern.is_some(), args.recursive) {
 //        (true, false) => {
