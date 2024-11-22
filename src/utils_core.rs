@@ -3,8 +3,8 @@
 // on my tests it moved files to home dir
 
 use std::env::current_dir;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 use anyhow::Ok;
 use log::*;
@@ -31,7 +31,10 @@ impl<'a> Trash<'a> {
             .join(self.file)
             .try_exists()
             .expect("Cant check whether trash dir exists or not");
-        error!("trash_name from trash_name function: {}", self.file.file_stem().unwrap().to_str().unwrap());
+        error!(
+            "trash_name from trash_name function: {}",
+            self.file.file_stem().unwrap().to_str().unwrap()
+        );
         let file_stem = self.file.file_stem().unwrap().to_str().unwrap();
         let file_ext = self.file.extension().and_then(|e| e.to_str());
         let file_name_to_check = self.file.file_name().unwrap();
@@ -58,12 +61,15 @@ impl<'a> Trash<'a> {
                 .expect("failed to set trash name")
         } else {
             let trash_name = trash_file_name(file_stem, file_ext);
-            debug!("impl Trash struct else: {:#?}", trash_name);
-            self.file
-                .with_file_name(trash_name)
-                .to_str()
-                .unwrap()
-                .to_string()
+            debug!(
+                "Trash name from impl: {:#?}",
+                self.file
+                    .with_file_name(&trash_name)
+                    .to_str()
+                    .unwrap()
+                    .to_string()
+            );
+            trash_name
         }
     }
 }
@@ -123,10 +129,7 @@ fn non_recursive_pattern_matching(
 ///
 /// takes Vec<PathBuf> and flatten all the
 #[allow(unused_variables)]
-pub fn remove_files(
-    items: Vec<PathBuf>,
-    args: &Cli 
-) -> anyhow::Result<()> {
+pub fn remove_files(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<()> {
     match (args.pattern.is_some(), args.recursive) {
         (true, false) => {
             let pat = args.pattern.to_owned().unwrap();
@@ -239,7 +242,6 @@ pub fn remove_files(
     }
     Ok(())
 }
-
 
 //fn core_remove(
 //    items: Vec<PathBuf>,

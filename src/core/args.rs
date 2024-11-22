@@ -20,26 +20,26 @@ use std::path::PathBuf;
 )]
 pub struct Cli {
     /// Remove files
-   pub file: Option<Vec<PathBuf>>,
+    pub file: Option<Vec<PathBuf>>,
 
     /// Remove directories and their contents recursively
     #[arg(short, long)]
-   pub recursive: bool,
+    pub recursive: bool,
 
     /// remove files matching the pattern. revert will not work on patterns, provide -rp for recursive remove
     #[arg(short = 'p', long = "pattern", value_name = "PATTERN")] // roxide some/dir -p .pdf
-   pub pattern: Option<String>, // Accept the file-matching pattern
+    pub pattern: Option<String>, // Accept the file-matching pattern
 
     /// Forces deletion without moving files to the trash directory
     #[arg(short, long, value_name = "FILE")]
-   pub force: Option<Vec<PathBuf>>,
+    pub force: Option<Vec<PathBuf>>,
 
     /// Enable verbose output
     #[arg(short, long)]
-   pub verbose: bool,
+    pub verbose: bool,
 
     #[command(subcommand)]
-   pub command: Option<Commands>,
+    pub command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -47,7 +47,6 @@ pub enum Commands {
     /// revert the previous remove
     Revert {},
 }
-
 
 /// Enum, determining when the `rm` will prompt the user about the file deletion
 #[derive(Eq, PartialEq, Clone, Copy)]
@@ -62,5 +61,3 @@ pub enum InteractiveMode {
     /// Prompt only on write-protected files
     PromptProtected,
 }
-
-

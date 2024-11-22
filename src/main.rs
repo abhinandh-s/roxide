@@ -4,17 +4,17 @@ use std::fs::remove_dir_all;
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
-use self::utils_core::remove_files;
 use self::revert::read_json_history;
+use self::utils_core::remove_files;
 
 pub mod core;
 
-pub mod utils_core;
 pub mod garbage_collection;
 pub mod history;
 mod pattern;
 pub mod revert;
 pub mod utils;
+pub mod utils_core;
 
 fn main() {
     env_logger::init();
