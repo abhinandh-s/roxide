@@ -10,69 +10,11 @@ use anyhow::Ok;
 use log::*;
 
 use crate::core::args::Cli;
+use crate::core::trash::Trash;
 use crate::pattern::filter_files_by_pattern;
 use crate::revert::write_log;
-use crate::utils::{current_time, trash_dir};
-
-#[derive(Debug)]
-pub struct Trash<'a> {
-    pub file: &'a Path,
-}
-
-impl<'a> Trash<'a> {
-    pub fn get_log_id(&self) -> (String, String) {
-        (
-            current_time().format("%Y%m%d%H%M%S").to_string(),
-            current_time().format("%Y-%m-%d_%H:%M:%S").to_string(),
-        )
-    }
-    pub fn trash_name(&self, log_id: String) -> String {
-        let trash_file = trash_dir()
-            .join(self.file)
-            .try_exists()
-            .expect("Cant check whether trash dir exists or not");
-        error!(
-            "trash_name from trash_name function: {}",
-            self.file.file_stem().unwrap().to_str().unwrap()
-        );
-        let file_stem = self.file.file_stem().unwrap().to_str().unwrap();
-        let file_ext = self.file.extension().and_then(|e| e.to_str());
-        let file_name_to_check = self.file.file_name().unwrap();
-        let trash_file_to_check = trash_dir().join(file_name_to_check).exists();
-        let trash_file_name = |stem: &str, ext: Option<&str>| -> String {
-            match ext {
-                Some(e) => format!("{}.{}.{}", stem, log_id, e),
-                None => format!("{}.{}", stem, log_id),
-            }
-        };
-
-        if !trash_file_to_check {
-            debug!(
-                "impl Trash struct: {:#?}",
-                self.file
-                    .file_name()
-                    .map(|f| f.to_string_lossy().to_string())
-                    .unwrap()
-            );
-            // self.file.file_name().unwrap().to_str().unwrap().to_string()
-            self.file
-                .file_name()
-                .map(|t| t.to_string_lossy().to_string())
-                .expect("failed to set trash name")
-        } else {
-            let trash_name = trash_file_name(file_stem, file_ext);
-            debug!(
-                "Trash name from impl: {:#?}",
-                self.file
-                    .with_file_name(&trash_name)
-                    .to_str()
-                    .unwrap()
-                    .to_string()
-            );
-            trash_name
-        }
-    }
-}
+use crate::utils::trash_dir;
+use crate::verbose;
 
 #[allow(clippy::cognitive_complexity)]
 fn non_recursive_pattern_matching(
@@ -172,15 +114,14 @@ pub fn remove_files(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<()> {
                         trash_dir().join(trash.trash_name(trash.get_log_id().1)),
                     )
                     .unwrap();
-                    if args.verbose {
-                        println!(
-                            "Trashed {} to {}",
-                            item.display(),
-                            trash_dir()
-                                .join(trash.trash_name(trash.get_log_id().1))
-                                .display()
-                        )
-                    }
+                    verbose!(
+                        args.verbose,
+                        "Trashed {} to {}",
+                        item.display(),
+                        trash_dir()
+                            .join(trash.trash_name(trash.get_log_id().1))
+                            .display()
+                    );
                     write_log(
                         id.0,
                         item_path.to_str().unwrap().to_string(),
