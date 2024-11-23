@@ -26,6 +26,10 @@ pub struct Cli {
     #[arg(short, long)]
     pub recursive: bool,
 
+    /// list items which will be affected, (dry run)
+    #[arg(short, long)]
+    pub list: bool,
+
     /// whether to prompt before removals
     #[arg(short, long)]
     pub interactive: Option<InteractiveMode>,

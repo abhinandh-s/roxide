@@ -62,6 +62,7 @@ macro_rules! prompt_yes {
     ($($arg:tt)*) => {{
         use std::io::{self, Write};
         // Print the prompt and flush stdout
+        print!("roxide: ");
         print!($($arg)*);
         print!(" "); // Add a space after the prompt
         io::stdout().flush().unwrap();
