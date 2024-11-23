@@ -1,9 +1,11 @@
 use clap::Parser;
 
-use std::fs::{self, remove_dir_all};
+use std::fs;
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
+use self::core::check::checks_init;
+use self::core::config::read_config;
 use self::core::history::read_history;
 use self::core::rm::core_remove;
 
@@ -16,6 +18,15 @@ fn main() {
     if let Some(items) = &cli.file {
         core_remove(items.to_vec(), &cli).unwrap();
         // remove_files(items.to_vec(), &cli).unwrap();
+    }
+    
+    #[cfg(feature = "extra_commands")]
+    if cli.dev {
+        read_config("config.toml").unwrap();
+    }
+    #[cfg(feature = "extra_commands")]
+    if cli.check {
+        checks_init();
     }
 
     if let Some(forece_file) = cli.force {

@@ -52,6 +52,11 @@ pub struct Cli {
     #[arg(short, long)]
     pub dev: bool,
 
+    #[cfg(feature = "extra_commands")]
+    /// Will check health of roxide in user env
+    #[arg(short, long)]
+    pub check: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
