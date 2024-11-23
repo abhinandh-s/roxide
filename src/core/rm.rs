@@ -1,39 +1,44 @@
 #![allow(unused_labels)]
-#![allow(unused_imports)]
 
 use std::env::current_dir;
-use std::ffi::OsStr;
-use std::{fs, io, usize};
-use std::io::{BufRead, Read};
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::path::PathBuf;
 
-use anyhow::Context;
 use log::*;
-use walkdir::{DirEntry, WalkDir};
 
 use crate::core::filter::filter_paths;
+use crate::core::history::write_history;
 use crate::core::trash::Trash;
-use crate::revert::write_log;
-use crate::utils::trash_dir;
-use crate::{dev_debug, show_error, verbose};
+use crate::core::utils::trash_dir;
+use crate::{prompt_yes, verbose};
 
 use super::args::{Cli, InteractiveMode};
 
-
-pub fn handle_interactive(items: Vec<PathBuf>, args: &Cli) {
-    if args.interactive == Some(InteractiveMode::Once) && (args.recursive || items.len() > 3) {
-        println!("remove 1 argument recursively? (y / n) ");
-
-        let mut guess = String::new();
-        io::stdin().read_line(&mut guess).expect("Failed to read line");
-        trace!("You guessed: {}", guess);
-    }
-
+/// rm --interactive=always trash/ -r
+/// rm: descend into directory 'trash/'? y
+/// rm: descend into directory 'trash/one'? y
+/// rm: remove regular empty file 'trash/one/two.txt'? n
+/// rm: remove directory 'trash/one'? n
+/// rm: remove directory 'trash/'? n
+#[allow(unused_variables)]
+pub fn handle_interactive(items: PathBuf, args: &Cli) {
     match args.interactive {
         Some(InteractiveMode::Never) => {}
         Some(InteractiveMode::Once) => {}
-        Some(InteractiveMode::Always) => {}
-        Some(InteractiveMode::PromptProtected) => {}
+        Some(InteractiveMode::Always) => {
+            if prompt_yes!("msg") {
+                // remove
+            } else {
+                // dont remove
+            }
+        }
+        Some(InteractiveMode::PromptProtected) => {
+            if prompt_yes!("msg") {
+                // remove
+            } else {
+                // dont remove
+            }
+        }
         None => {}
     }
     
@@ -41,45 +46,65 @@ pub fn handle_interactive(items: Vec<PathBuf>, args: &Cli) {
 
 
 pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
-    let f = filter_paths(items.clone(), args).unwrap();
-    handle_interactive(items, args);
-    trace!("{:#?}", f);
+    let enties = filter_paths(items.clone(), args).unwrap();
+
+    //if args.interactive == Some(InteractiveMode::Once) && args.recursive || items.len() > 3 {
+    //    let msg = format!(
+    //        "remove {} {}{}",
+    //        items.len(),
+    //        if items.len() > 1 {
+    //            "arguments"
+    //        } else { "argument" },
+    //        if args.recursive {
+    //            "recursively?"
+    //        } else {
+    //            "?"
+    //        }
+    //    );
+    //    if prompt_yes!("{}", msg) {
+    //        // remove
+    //    } else {
+    //        // dont remove
+    //    }
+    //}
+
+    for item in &enties {
+        let item = item.as_path();
+        let trash = Trash { file: item };
+        let id = trash.get_log_id();
+        trace!("id: {:?}", id);
+        let item_path = current_dir().unwrap().join(item);
+        trace!("item path recursive true: {:?}", item_path);
+        let trash_path = trash_dir().join(trash.trash_name(id.1));
+        trace!("trash path recursive true: {:?}", trash_path);
+        fs::rename(
+            &item_path,
+            trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+        )
+            .unwrap();
+        verbose!(
+            args.verbose,
+            "Trashed {} to {}",
+            item.display(),
+            trash_dir()
+                .join(trash.trash_name(trash.get_log_id().1))
+                .display()
+        );
+        write_history(
+            id.0,
+            item_path.to_str().unwrap().to_string(),
+            trash_path.to_str().unwrap().to_string(),
+        )
+            .unwrap();
+        //handle_interactive(i.to_path_buf(), args);
+    } 
+
+    // handle_interactive(items, args);
+    trace!("{:#?}", enties);
     Ok(())
 }
 
-//#[allow(unused_labels)]
-//pub fn prev_core_remove(
-//    items: Vec<PathBuf>,
-//    args: &Cli,
-//) -> anyhow::Result<(), anyhow::Error> {
-//    verbose!(args.verbose, "recursive: {:?}", args.recursive);
-//    'iter_through_arg_items: for item in items {
-//        if item.exists() {
-//            let exact_file_name = item.file_name().unwrap();
-//            trace!("exact_file_name: {}", exact_file_name.to_string_lossy());
-//            if args.recursive {
-//                // recursive remove
-//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
-//            } else if item.is_dir() {
-//                // if we got a directory in non-recursive remove
-//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
-//                continue;
-//            } else {
-//                // non-recursive remove
-//                eprintln!("{} is a directory.\nTry: roxide -r", item.display());
-//            }
-//        } else {
-//            eprintln!(
-//                "roxide: cannot remove '{}': no such file or directory",
-//                &item.display()
-//            );
-//            continue;
-//        }
-//    }
-//    Ok(())
-//}
-//
-//
+
 //#[allow(clippy::cognitive_complexity)]
 //fn non_recursive_pattern_matching(
 //    items: Vec<PathBuf>,
@@ -163,33 +188,7 @@ pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow
 //        (false, true) => {
 //            for item in items {
 //                if item.exists() {
-//                    let item = item.as_path();
-//                    let trash = Trash { file: item };
-//                    let id = trash.get_log_id();
-//                    trace!("id: {:?}", id);
-//                    let item_path = current_dir().unwrap().join(item);
-//                    trace!("item path recursive true: {:?}", item_path);
-//                    let trash_path = trash_dir().join(trash.trash_name(id.1));
-//                    trace!("trash path recursive true: {:?}", trash_path);
-//                    fs::rename(
-//                        &item_path,
-//                        trash_dir().join(trash.trash_name(trash.get_log_id().1)),
-//                    )
-//                    .unwrap();
-//                    verbose!(
-//                        args.verbose,
-//                        "Trashed {} to {}",
-//                        item.display(),
-//                        trash_dir()
-//                            .join(trash.trash_name(trash.get_log_id().1))
-//                            .display()
-//                    );
-//                    write_log(
-//                        id.0,
-//                        item_path.to_str().unwrap().to_string(),
-//                        trash_path.to_str().unwrap().to_string(),
-//                    )
-//                    .unwrap();
+//
 //                } else {
 //                    eprintln!(
 //                        "roxide: cannot remove '{}': no such file or directory",

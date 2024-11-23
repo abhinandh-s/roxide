@@ -2,7 +2,8 @@ use std::path::Path;
 
 use log::*;
 
-use crate::utils::{current_time, trash_dir};
+
+use super::utils::{current_time, trash_dir};
 
 #[derive(Debug)]
 pub struct Trash<'a> {

@@ -1,11 +1,67 @@
 use std::error::Error;
 use std::fs::{self, create_dir_all, rename, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
+use std::num::ParseIntError;
 use std::path::Path;
+use std::str::FromStr;
 use std::vec;
 
 use dirs::data_dir;
 use log::debug;
+
+//
+//
+
+/// # LogId unique id which represents year, month, date, hour, minute and second
+/// in this order itself. ("%Y%m%d%H%M%S")
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct LogId {
+    pub num: u64,
+}
+
+impl From<u64> for LogId {
+    fn from(value: u64) -> Self {
+        LogId { num: value }
+    }
+}
+
+impl FromStr for LogId {
+    type Err = ParseIntError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().parse() {
+            Ok(id) => Ok(LogId { num: id }),
+            Err(e) => Err(e),
+        }
+    }
+}
+
+
+// current issue
+// BUG: when i remove the dir from some/dir to trash it wont work
+//
+// Possibilities
+//
+// HACK: no need to test mutiple files/dirs Possibilities
+//       since it will become single file/dir in for loop
+//
+// 1. single file from root [  NOTE: tested ]
+//
+// 2. mutiple files from root by specifiying name
+// 3. mutiple files from root using glob wildcard
+// 4. single dir from root [  NOTE: tested ]
+//
+// 5. mutiple dirs from root
+// 6. mutiple dirs from root using glob wildcard
+//
+// 1. single file from some/dir [  NOTE: tested ]
+//
+// 2. mutiple files from some/dir by specifiying name
+// 3. mutiple files from some/dir using glob wildcard
+// 4. single dir from some/dir [  NOTE: tested ]
+// 5. mutiple dirs from some/dir
+// 6. mutiple dirs from some/dir using glob wildcard
+
+//
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct TrashHistory {
@@ -20,7 +76,7 @@ pub struct TrashMeta {
     pub history: TrashHistory,
 }
 
-pub fn write_log(
+pub fn write_history(
     unique_id: String,
     original_path: String,
     trash_path: String,
@@ -46,7 +102,7 @@ pub fn write_log(
     Ok(())
 }
 
-pub fn read_json_history() -> Result<(), Box<dyn Error>> {
+pub fn read_history() -> Result<(), Box<dyn Error>> {
     let log_file = data_dir().unwrap().join("roxide/roxide_history.log");
     let file = fs::File::open(&log_file)?;
     let reader = BufReader::new(file);

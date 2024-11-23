@@ -4,17 +4,10 @@ use std::fs::remove_dir_all;
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
+use self::core::history::read_history;
 use self::core::rm::core_remove;
-use self::revert::read_json_history;
-// use self::utils_core::remove_files;
 
 pub mod core;
-
-pub mod garbage_collection;
-pub mod history;
-pub mod revert;
-pub mod utils;
-pub mod utils_core;
 
 fn main() {
     env_logger::init();
@@ -36,7 +29,7 @@ fn main() {
     }
     match &cli.command {
         Some(Commands::Revert {}) => {
-            read_json_history().unwrap();
+            read_history().unwrap();
         }
         None => {}
     }
