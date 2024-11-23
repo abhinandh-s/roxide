@@ -43,6 +43,22 @@ pub fn handle_interactive(items: PathBuf, args: &Cli) {
     }
 }
 
+// Checks if the current user is root.
+/// Returns `true` if the user is root, otherwise `false`.
+pub fn check_root() -> bool {
+    // Safe implementation: Read UID from `/proc/self/status`
+    use std::fs;
+    if let Ok(status) = fs::read_to_string("/proc/self/status") {
+        for line in status.lines() {
+            if line.starts_with("Uid:") {
+                let uid = line.split_whitespace().nth(1);
+                return uid == Some("0");
+            }
+        }
+    }
+    false
+}
+
 pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
     let enties = filter_paths(items.clone(), args).unwrap();
 
@@ -75,25 +91,30 @@ pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow
         trace!("item path recursive true: {:?}", item_path);
         let trash_path = trash_dir().join(trash.trash_name(id.1));
         trace!("trash path recursive true: {:?}", trash_path);
-        fs::rename(
-            &item_path,
-            trash_dir().join(trash.trash_name(trash.get_log_id().1)),
-        )
-        .unwrap();
-        verbose!(
-            args.verbose,
-            "Trashed {} to {}",
-            item.display(),
-            trash_dir()
-                .join(trash.trash_name(trash.get_log_id().1))
-                .display()
-        );
-        write_history(
-            id.0,
-            item_path.to_str().unwrap().to_string(),
-            trash_path.to_str().unwrap().to_string(),
-        )
-        .unwrap();
+        if check_root() {
+            println!("is root");
+        } else {
+            println!("is not root");
+            fs::rename(
+                &item_path,
+                trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+            )
+            .unwrap();
+            verbose!(
+                args.verbose,
+                "Trashed {} to {}",
+                item.display(),
+                trash_dir()
+                    .join(trash.trash_name(trash.get_log_id().1))
+                    .display()
+            );
+            write_history(
+                id.0,
+                item_path.to_str().unwrap().to_string(),
+                trash_path.to_str().unwrap().to_string(),
+            )
+            .unwrap();
+        }
         //handle_interactive(i.to_path_buf(), args);
     }
 
