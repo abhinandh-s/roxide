@@ -2,7 +2,6 @@ use std::path::Path;
 
 use log::*;
 
-
 use super::utils::{current_time, trash_dir};
 
 #[derive(Debug)]

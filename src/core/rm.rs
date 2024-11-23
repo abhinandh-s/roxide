@@ -41,9 +41,7 @@ pub fn handle_interactive(items: PathBuf, args: &Cli) {
         }
         None => {}
     }
-    
 }
-
 
 pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
     let enties = filter_paths(items.clone(), args).unwrap();
@@ -81,7 +79,7 @@ pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow
             &item_path,
             trash_dir().join(trash.trash_name(trash.get_log_id().1)),
         )
-            .unwrap();
+        .unwrap();
         verbose!(
             args.verbose,
             "Trashed {} to {}",
@@ -95,15 +93,14 @@ pub fn core_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow
             item_path.to_str().unwrap().to_string(),
             trash_path.to_str().unwrap().to_string(),
         )
-            .unwrap();
+        .unwrap();
         //handle_interactive(i.to_path_buf(), args);
-    } 
+    }
 
     // handle_interactive(items, args);
     trace!("{:#?}", enties);
     Ok(())
 }
-
 
 //#[allow(clippy::cognitive_complexity)]
 //fn non_recursive_pattern_matching(

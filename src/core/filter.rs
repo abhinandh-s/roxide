@@ -93,5 +93,3 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> Result<Vec<PathBuf>, any
     }
     Ok(files)
 }
-
-

@@ -35,7 +35,6 @@ impl FromStr for LogId {
     }
 }
 
-
 // current issue
 // BUG: when i remove the dir from some/dir to trash it wont work
 //
