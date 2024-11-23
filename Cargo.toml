@@ -14,6 +14,10 @@ edition = "2021"
 [badges]
 maintenance = { status = "actively-developed" }
 
+[features]
+default = []
+extra_commands = []
+
 [dependencies]
 anyhow = "1.0.93"
 chrono = "0.4.38"

@@ -17,7 +17,7 @@
 - `roxide -v | --verbose` : will print the file name and its out path
 - `roxide some/dir/ -p .pdf`: will remove files matching the pattern from some/dir
 - `roxide some/dir/ -rp .pdf`: will recursively remove files matching the pattern from some/dir
-- `roxide some/dir/ -rp .pdf -l`: will list
+- `roxide some/dir/ -rp .pdf -l`: will list files, like dry run
 
 > `revert` cant bring back files removed using patterns but you can still access it from Trash dir
 

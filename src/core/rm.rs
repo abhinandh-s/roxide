@@ -14,6 +14,7 @@ use crate::{prompt_yes, show_error, verbose};
 
 use super::args::{Cli, InteractiveMode};
 
+/// TODO
 /// rm --interactive=always trash/ -r
 /// rm: descend into directory 'trash/'? y
 /// rm: descend into directory 'trash/one'? y

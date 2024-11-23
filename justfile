@@ -14,6 +14,11 @@ push:
   cargo build --release
   git add -A && git commit -m 'refacoring' && git push
 
+build-dev:
+  cargo build --release --features extra_commands
+
+build-release:
+  cargo build --release
 
 release:
   cargo fmt --all -v 

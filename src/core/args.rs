@@ -46,6 +46,11 @@ pub struct Cli {
     #[arg(short, long)]
     pub verbose: bool,
 
+    #[cfg(feature = "extra_commands")]
+    /// Enable verbose output debugging purpose
+    #[arg(short, long)]
+    pub dev: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
