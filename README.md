@@ -19,7 +19,9 @@
 - `roxide some/dir/ -rp .pdf`: will recursively remove files matching the pattern from some/dir
 - `roxide some/dir/ -rp .pdf -l`: will list files, like dry run
 
-> `revert` cant bring back files removed using patterns but you can still access it from Trash dir
+> [!WARNING]
+> Do not use sudo. Support for sudo is still work in progress.
+> It is not possible to bring back files removed using patterns with `revert` flag but you can still access it from Trash dir
 
 ## Installation
 
