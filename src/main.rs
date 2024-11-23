@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use std::fs::remove_dir_all;
+use std::fs::{self, remove_dir_all};
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
@@ -19,9 +19,13 @@ fn main() {
     }
 
     if let Some(forece_file) = cli.force {
-        for i in forece_file {
-            if Path::new(&i).exists() {
-                remove_dir_all(i).unwrap();
+        for item in forece_file {
+            if Path::new(&item).exists() {
+                if item.is_dir() {
+                    fs::remove_dir_all(item).unwrap();
+                } else {
+                    fs::remove_file(item).unwrap();
+                }
             } else {
                 println!("Path didnt exists");
             }

@@ -1,6 +1,6 @@
 [package]
 name = "roxide"
-version = "0.1.9"
+version = "0.2.0"
 license = "MIT"
 authors = ["Abhinandh S <abhinandhsuby@proton.me>"]
 categories = ["command-line-utilities", "filesystem"]

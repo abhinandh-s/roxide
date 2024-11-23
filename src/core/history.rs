@@ -9,9 +9,6 @@ use std::vec;
 use dirs::data_dir;
 use log::debug;
 
-//
-//
-
 /// # LogId unique id which represents year, month, date, hour, minute and second
 /// in this order itself. ("%Y%m%d%H%M%S")
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]

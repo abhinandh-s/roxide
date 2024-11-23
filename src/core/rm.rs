@@ -12,6 +12,7 @@ use crate::core::trash::Trash;
 use crate::core::utils::trash_dir;
 use crate::{prompt_yes, show_error, verbose};
 
+#[allow(unused_imports)]
 use super::args::{Cli, InteractiveMode};
 
 /// TODO
@@ -21,6 +22,7 @@ use super::args::{Cli, InteractiveMode};
 /// rm: remove regular empty file 'trash/one/two.txt'? n
 /// rm: remove directory 'trash/one'? n
 /// rm: remove directory 'trash/'? n
+#[cfg(feature = "extra_commands")]
 #[allow(unused_variables)]
 pub fn handle_interactive(items: PathBuf, args: &Cli) {
     match args.interactive {
