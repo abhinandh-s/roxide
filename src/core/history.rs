@@ -32,33 +32,6 @@ impl FromStr for LogId {
     }
 }
 
-// current issue
-// BUG: when i remove the dir from some/dir to trash it wont work
-//
-// Possibilities
-//
-// HACK: no need to test mutiple files/dirs Possibilities
-//       since it will become single file/dir in for loop
-//
-// 1. single file from root [  NOTE: tested ]
-//
-// 2. mutiple files from root by specifiying name
-// 3. mutiple files from root using glob wildcard
-// 4. single dir from root [  NOTE: tested ]
-//
-// 5. mutiple dirs from root
-// 6. mutiple dirs from root using glob wildcard
-//
-// 1. single file from some/dir [  NOTE: tested ]
-//
-// 2. mutiple files from some/dir by specifiying name
-// 3. mutiple files from some/dir using glob wildcard
-// 4. single dir from some/dir [  NOTE: tested ]
-// 5. mutiple dirs from some/dir
-// 6. mutiple dirs from some/dir using glob wildcard
-
-//
-
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct TrashHistory {
     pub original_path: String,

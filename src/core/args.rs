@@ -77,6 +77,7 @@ pub enum InteractiveMode {
     Once,
     /// Prompt before every removal
     Always,
+    #[cfg(feature = "wip")]
     /// Prompt only on write-protected files
     PromptProtected,
 }

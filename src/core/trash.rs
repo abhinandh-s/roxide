@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use chrono::{DateTime, Local};
 use log::*;
 
 use super::utils::{current_time, trash_dir};
@@ -7,6 +8,30 @@ use super::utils::{current_time, trash_dir};
 #[derive(Debug)]
 pub struct Trash<'a> {
     pub file: &'a Path,
+}
+
+pub trait TrashOps {
+    fn exists_in_trash(&self) -> bool
+    where
+        Self: AsRef<std::path::Path>;
+    fn get_unique_id(&self) -> String {
+        current_time().format("%Y%m%d%H%M%S").to_string()
+    }
+    fn get_pretty_unique_id(&self) -> String {
+        current_time().format("%Y-%m-%d_%H:%M:%S").to_string()
+    }
+    fn get_raw_unique_id(&self) -> DateTime<Local> {
+        current_time()
+    }
+}
+
+impl<'a> TrashOps for Trash<'a> {
+    fn exists_in_trash(&self) -> bool
+    where
+        Self: AsRef<std::path::Path>,
+    {
+        trash_dir().join(self.file.file_name().unwrap()).exists()
+    }
 }
 
 impl<'a> Trash<'a> {
@@ -26,7 +51,6 @@ impl<'a> Trash<'a> {
                 None => format!("{}.{}", stem, log_id),
             }
         };
-
         if !trash_file {
             debug!(
                 "impl Trash struct: {:#?}",

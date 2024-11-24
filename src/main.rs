@@ -7,7 +7,7 @@ use self::core::args::{Cli, Commands};
 use self::core::check::checks_init;
 use self::core::config::read_config;
 use self::core::history::read_history;
-use self::core::rm::core_remove;
+use self::core::rm::init_remove;
 
 pub mod core;
 
@@ -16,7 +16,7 @@ fn main() {
     let cli = Cli::parse();
 
     if let Some(items) = &cli.file {
-        core_remove(items.to_vec(), &cli).unwrap();
+        init_remove(items.to_vec(), &cli).unwrap();
         // remove_files(items.to_vec(), &cli).unwrap();
     }
     

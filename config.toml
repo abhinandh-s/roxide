@@ -1,3 +1,4 @@
 [settings]
 user_names = ["abhi", "john"]
-
+backup_dir = "~/archive"
+trash_dir = "/home/abhi/.local/share/Trash/files"
