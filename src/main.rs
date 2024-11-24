@@ -4,7 +4,9 @@ use std::fs;
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
+#[cfg(feature = "extra_commands")]
 use self::core::check::checks_init;
+#[cfg(feature = "extra_commands")]
 use self::core::config::read_config;
 use self::core::history::read_history;
 use self::core::rm::init_remove;
@@ -19,7 +21,7 @@ fn main() {
         init_remove(items.to_vec(), &cli).unwrap();
         // remove_files(items.to_vec(), &cli).unwrap();
     }
-    
+
     #[cfg(feature = "extra_commands")]
     if cli.dev {
         read_config("config.toml").unwrap();

@@ -1,6 +1,6 @@
+pub mod args;
 pub mod check;
 pub mod config;
-pub mod args;
 pub mod filter;
 pub mod history;
 pub mod macros;

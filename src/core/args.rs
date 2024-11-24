@@ -30,7 +30,6 @@ pub struct Cli {
     #[arg(short, long)]
     pub list: bool,
 
-    #[cfg(feature = "extra_commands")]
     /// whether to prompt before removals
     #[arg(short, long)]
     pub interactive: Option<InteractiveMode>,

@@ -31,14 +31,13 @@ pub fn check_root() -> bool {
     false
 }
 
-/// TODO: 
+/// TODO:
 /// rm --interactive=always trash/ -r
 /// rm: descend into directory 'trash/'? y
 /// rm: descend into directory 'trash/one'? y
 /// rm: remove regular empty file 'trash/one/two.txt'? n
 /// rm: remove directory 'trash/one'? n
 /// rm: remove directory 'trash/'? n
-#[cfg(feature = "extra_commands")]
 pub fn handle_interactive_once(args: &Cli) -> bool {
     let items = args.file.as_ref().unwrap();
     if args.interactive == Some(InteractiveMode::Once) && (items.len() > 3 || args.recursive) {
@@ -112,19 +111,17 @@ fn core_remove(args: &Cli, item: &Path) {
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
     let enties = filter_paths(items, args).unwrap();
-
-    if handle_interactive_once(args) {
-        for item in &enties {
-            if args.list {
-                println!("{}", item.display());
+    handle_interactive_once(args);
+    for item in &enties {
+        if args.list {
+            println!("{}", item.display());
+        } else {
+            let is_root = item.parent().is_none() && item.has_root();
+            if is_root {
+                show_error!("{} is root!", item.display());
+                continue;
             } else {
-                let is_root = item.parent().is_none() && item.has_root();
-                if is_root {
-                    show_error!("{} is root!", item.display());
-                    continue;
-                } else {
-                    core_remove(args, item)
-                }
+                handle_interactive(args, item)
             }
         }
     }
@@ -132,29 +129,25 @@ pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow
     Ok(())
 }
 
-fn handle_interactive() {
-
-    //match args.interactive {
-    //    Some(InteractiveMode::Never) => {}
-    //    Some(InteractiveMode::Always) => {
-    //        // for item in items
-    //        if prompt_yes!("msg") {
-    //            // remove
-    //           // core_remove_single();
-    //        } else {
-    //            // dont remove
-    //        }
-    //    }
-    //    #[cfg(feature = "wip")]
-    //    Some(InteractiveMode::PromptProtected) => {
-    //        if prompt_yes!("msg") {
-    //           // single_core_remove();
-    //        } else {
-    //            // dont remove
-    //        }
-    //    }
-    //    // not including InteractiveMode::once here
-    //    Some(_) => {}
-    //    None => {}
-    //}
+fn handle_interactive(args: &Cli, item: &Path) {
+    // not including InteractiveMode::once and InteractiveMode::Never here
+    match args.interactive {
+        Some(InteractiveMode::Always) => {
+            // for item in items
+            if prompt_yes!("do you wanna remove: `{}`?", &item.display()) {
+                core_remove(args, item)
+            }
+        }
+        // TODO:
+        #[cfg(feature = "wip")]
+        Some(InteractiveMode::PromptProtected) => {
+            if prompt_yes!("msg") {
+                // single_core_remove();
+            } else {
+                // dont remove
+            }
+        }
+        Some(_) => core_remove(args, item),
+        None => {}
+    }
 }

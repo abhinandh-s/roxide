@@ -32,7 +32,11 @@ fn trash_dir_check() {
         .exists()
         .then(|| trace!("config exists"))
         .unwrap_or_else(generate_config);
-    let binding = config_dir().unwrap().join("roxide/config.toml").to_string_lossy().to_string();
+    let binding = config_dir()
+        .unwrap()
+        .join("roxide/config.toml")
+        .to_string_lossy()
+        .to_string();
     let path = binding.as_str();
     let config = read_config(path).unwrap();
     println!("{:#?}", config);
@@ -55,5 +59,3 @@ fn generate_config() {
     )
     .unwrap();
 }
-
-
