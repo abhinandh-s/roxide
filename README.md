@@ -25,8 +25,9 @@
 
 
 > [!WARNING]
-> Do not use sudo. Support for sudo is still work in progress.
-> It is not possible to bring back files removed using patterns with `revert` flag but you can still access it from Trash dir
+> 1. Do not use sudo. Support for sudo is still work in progress.
+> 2. It wont warn about write protected contents (wip)
+> 3. It is not possible to bring back files removed using patterns with `revert` flag but you can still access it from Trash dir
 
 ## Installation
 

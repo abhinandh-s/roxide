@@ -111,7 +111,9 @@ fn core_remove(args: &Cli, item: &Path) {
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
     let enties = filter_paths(items, args).unwrap();
-    handle_interactive_once(args);
+    if args.interactive == Some(InteractiveMode::Once) {
+        handle_interactive_once(args);
+    }
     for item in &enties {
         if args.list {
             println!("{}", item.display());
@@ -148,6 +150,62 @@ fn handle_interactive(args: &Cli, item: &Path) {
             }
         }
         Some(_) => core_remove(args, item),
-        None => {}
+        None => core_remove(args, item),
     }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{fs, path};
+
+    use crate::core::args::Cli;
+    use crate::core::rm::check_root;
+
+    use super::init_remove;
+    #[test]
+    fn test_check_root() {
+        // This test assumes a non-root environment.
+        let is_root = check_root();
+        assert!(!is_root);
+    }
+    #[test]
+    fn single_file_in_dir_root() {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/single_file_in_dir_root");
+        fs::create_dir_all(&base_dir).unwrap();
+        let files = vec![
+            base_dir.join("file1.txt"),
+            base_dir.join("file2.pdf"),
+            base_dir.join("file3"),
+        ];
+        for filename in &files {
+            fs::write(filename, "some contents").unwrap();
+        }
+
+        // no flags test
+        let args = Cli {
+            file: Some(files.clone()),
+            interactive: None,
+            recursive: false,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            #[cfg(feature = "extra_commands")]
+            dev: false,
+            force: None,
+            list: false,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+        init_remove(files.clone(), &args).unwrap();
+        for filename in &files {
+            assert!(!path::Path::new(&filename).exists())
+        }
+    }
+    //#[test]
+    //fn single_dir_in_dir_root() {
+    //    fs::create_dir_all("trash/tests/single_dir_in_dir_root/test_dir").unwrap();
+    //}
 }
