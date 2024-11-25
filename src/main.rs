@@ -24,7 +24,8 @@ fn main() {
 
     #[cfg(feature = "extra_commands")]
     if cli.dev {
-        read_config("config.toml").unwrap();
+        
+        // read_config("config.toml").unwrap();
     }
     #[cfg(feature = "extra_commands")]
     if cli.check {

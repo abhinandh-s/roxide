@@ -35,6 +35,20 @@ pub fn handle_interactive_once(args: &Cli) -> bool {
     false
 }
 
+pub type RoError<'a, T> = Result<T, super::error::Error<'a>>;
+
+fn init_checks(item: &Path) -> RoError<()> {
+    //if item.to_string_lossy() == dirs::home_dir().unwrap().to_string_lossy() {
+    //    println!("{}", item.to_string_lossy());
+    //    println!("{}", dirs::home_dir().unwrap().to_string_lossy());
+    //    return Err(crate::core::error::Error::IsHome(item));
+    //}
+    if item.parent().is_none() && item.has_root() {
+        return Err(crate::core::error::Error::IsRoot(item));
+    }
+    Ok(())
+}
+
 fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };
     let id = trash.get_log_id();
@@ -91,7 +105,7 @@ fn core_remove(args: &Cli, item: &Path) {
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
     let enties = filter_paths(items, args).unwrap_or_else(|_| {
-       // show_error!("{}", e);
+        // show_error!("{}", e);
         Vec::new()
     });
 
@@ -100,10 +114,14 @@ pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow
         if args.list {
             println!("{}", item.display());
         } else {
-            let is_root = item.parent().is_none() && item.has_root();
-            if is_root {
-                show_error!("{} is root!", item.display());
+            // let is_root = item.parent().is_none() && item.has_root();
+            // if is_root {
+            if let Err(e) = init_checks(item) {
+                eprintln!("Error: {}", e); // prints my custom error
                 continue;
+                //   }
+                //  show_error!("{} is root!", item.display());
+                //   continue;
             } else {
                 handle_interactive(args, item)
             }

@@ -1,3 +1,4 @@
+pub mod error;
 pub mod args;
 pub mod check;
 pub mod config;
