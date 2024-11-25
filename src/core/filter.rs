@@ -39,7 +39,7 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> Result<Vec<PathBuf>, any
                     for entry in item {
                         let walker = WalkDir::new(entry).into_iter();
                         for entry in walker.into_iter().filter_entry(|e| !is_hidden(e)) {
-                            let entry = entry.context("cant remove")?;
+                            let entry = entry.context({ "no file matching the pattern" })?;
                             if entry.path().is_dir() {
                                 continue;
                             }
@@ -90,6 +90,9 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> Result<Vec<PathBuf>, any
             );
             continue;
         }
+    }
+    if files.is_empty() {
+        return Err(anyhow::anyhow!("No files matched the given conditions."));
     }
     Ok(files)
 }

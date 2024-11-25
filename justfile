@@ -20,6 +20,9 @@ build-dev:
 build-release:
   cargo build --release
 
+install:
+  cargo install --path .
+
 release:
   cargo fmt --all -v 
   cargo build --release

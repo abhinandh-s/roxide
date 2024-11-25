@@ -112,7 +112,11 @@ fn core_remove(args: &Cli, item: &Path) {
 }
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
-    let enties = filter_paths(items, args).unwrap();
+    let enties = filter_paths(items, args).unwrap_or_else(|e| {
+        show_error!("{}", e);
+        Vec::new()
+    });
+
     handle_interactive_once(args);
     for item in &enties {
         if args.list {
@@ -141,7 +145,7 @@ fn handle_interactive(args: &Cli, item: &Path) {
             }
         }
         // TODO:
-        #[cfg(feature = "wip")]
+        #[cfg(feature = "extra_commands")]
         Some(InteractiveMode::PromptProtected) => {
             if prompt_yes!("msg") {
                 // single_core_remove();
@@ -277,20 +281,94 @@ mod test {
         };
 
         if let Some(forece_file) = args.force {
-        for item in forece_file {
-            if Path::new(&item).exists() {
-                if item.is_dir() {
-                    fs::remove_dir_all(item).expect("Error while removing dirs");
+            for item in forece_file {
+                if Path::new(&item).exists() {
+                    if item.is_dir() {
+                        fs::remove_dir_all(item).expect("Error while removing dirs");
+                    } else {
+                        fs::remove_file(item).expect("Error while removing files");
+                    }
                 } else {
-                    fs::remove_file(item).expect("Error while removing files");
+                    println!("Path didnt exists");
                 }
-            } else {
-                println!("Path didnt exists");
             }
         }
-    }
         for filename in &dirs {
             assert!(!path::Path::new(&filename).exists())
         }
+    }
+    #[test]
+    fn list_files_in_some_dir_from_root() {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/list_files_in_some_dir_from_root");
+        fs::create_dir_all(&base_dir).unwrap();
+        let files = vec![
+            base_dir.join("file1.txt"),
+            base_dir.join("file2.pdf"),
+            base_dir.join("file3"),
+        ];
+        for filename in &files {
+            fs::write(filename, "some contents").unwrap();
+        }
+
+        // recursive flags test
+        let args = Cli {
+            file: Some(files.clone()),
+            interactive: None,
+            recursive: true,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            #[cfg(feature = "extra_commands")]
+            dev: false,
+            force: None,
+            list: true,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+        init_remove(files.clone(), &args).unwrap();
+        for filename in &files {
+            assert!(path::Path::new(&filename).exists())
+        }
+    }
+    #[test]
+    fn pattern_files_in_some_dir_from_root() {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/pattern_files_in_some_dir_from_root");
+        fs::create_dir_all(&base_dir).unwrap();
+        let files = vec![
+            base_dir.join("file1.txt"),
+            base_dir.join("file2.pdf"),
+            base_dir.join("file3"),
+        ];
+        for filename in &files {
+            if !filename.exists() {
+                fs::write(filename, "some contents").unwrap();
+            }
+        }
+
+        // no flags test
+        let args = Cli {
+            file: Some(files.clone()),
+            interactive: None,
+            recursive: false,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            #[cfg(feature = "extra_commands")]
+            dev: false,
+            force: None,
+            list: false,
+            verbose: false,
+            pattern: Some("txt".to_string()),
+            command: None,
+        };
+
+        init_remove(files.clone(), &args).unwrap();
+        assert!(!path::Path::new(&base_dir.join("file1.txt")).exists());
+        assert!(path::Path::new(&base_dir.join("file2.pdf")).exists());
+        assert!(path::Path::new(&base_dir.join("file3")).exists());
     }
 }
