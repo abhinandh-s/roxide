@@ -5,6 +5,22 @@ use chrono::{DateTime, Local};
 use dirs::data_local_dir;
 use log::trace;
 
+// Checks if the current user is root.
+/// Returns `true` if the user is root, otherwise `false`.
+pub fn check_root() -> bool {
+    // Safe implementation: Read UID from `/proc/self/status`
+    use std::fs;
+    if let Ok(status) = fs::read_to_string("/proc/self/status") {
+        for line in status.lines() {
+            if line.starts_with("Uid:") {
+                let uid = line.split_whitespace().nth(1);
+                return uid == Some("0");
+            }
+        }
+    }
+    false
+}
+
 ///# Returns the path to the user's local trash directory.
 ///
 /// The returned value depends on the operating system and is either a `Some`, containing a value from the following table, or a `None`.

@@ -12,6 +12,7 @@ remote-run:
 push:
   cargo fmt --all -v 
   cargo build --release
+  cargo install --path .
   git add -A && git commit -m 'refacoring' && git push
 
 build-dev:
@@ -26,6 +27,7 @@ install:
 release:
   cargo fmt --all -v 
   cargo build --release
+  cargo install --path .
   git tag v{{ver}}
   git add -A && git commit -m 'new release' && git push
   git push --tags
