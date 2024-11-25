@@ -12,7 +12,6 @@ remote-run:
 push:
   cargo fmt --all -v 
   cargo build --release
-  cargo install --path .
   git add -A && git commit -m 'refacoring' && git push
 
 build-dev:

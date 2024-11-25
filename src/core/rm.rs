@@ -52,6 +52,7 @@ fn core_remove(args: &Cli, item: &Path) {
     trace!("trash path recursive true: {:?}", trash_path);
     if check_root() {
         trace!("is root user");
+        show_error!("sudo support is work in progress");
         // prompt_yes!("there is no trash dir for sudo user, do you wanna remove the file?")
     } else {
         trace!("is normal user");
@@ -96,8 +97,8 @@ fn core_remove(args: &Cli, item: &Path) {
 }
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
-    let enties = filter_paths(items, args).unwrap_or_else(|e| {
-        show_error!("{}", e);
+    let enties = filter_paths(items, args).unwrap_or_else(|_| {
+       // show_error!("{}", e);
         Vec::new()
     });
 
