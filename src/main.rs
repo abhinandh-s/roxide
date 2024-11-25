@@ -35,9 +35,9 @@ fn main() {
         for item in forece_file {
             if Path::new(&item).exists() {
                 if item.is_dir() {
-                    fs::remove_dir_all(item).unwrap();
+                    fs::remove_dir_all(item).expect("Error while removing dirs");
                 } else {
-                    fs::remove_file(item).unwrap();
+                    fs::remove_file(item).expect("Error while removing files");
                 }
             } else {
                 println!("Path didnt exists");

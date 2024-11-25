@@ -92,28 +92,28 @@ fn core_remove(args: &Cli, item: &Path) {
                 }
             }
         }
-        verbose!(
-            args.verbose,
-            "Trashed {} to {}",
-            item.display(),
-            trash_dir()
-                .join(trash.trash_name(trash.get_log_id().1))
-                .display()
-        );
-        write_history(
-            id.0,
-            item_path.to_str().unwrap().to_string(),
-            trash_path.to_str().unwrap().to_string(),
-        )
-        .unwrap();
+        if args.pattern.is_none() {
+            verbose!(
+                args.verbose,
+                "Trashed {} to {}",
+                item.display(),
+                trash_dir()
+                    .join(trash.trash_name(trash.get_log_id().1))
+                    .display()
+            );
+            write_history(
+                id.0,
+                item_path.to_str().unwrap().to_string(),
+                trash_path.to_str().unwrap().to_string(),
+            )
+            .unwrap();
+        }
     }
 }
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
     let enties = filter_paths(items, args).unwrap();
-    if args.interactive == Some(InteractiveMode::Once) {
-        handle_interactive_once(args);
-    }
+    handle_interactive_once(args);
     for item in &enties {
         if args.list {
             println!("{}", item.display());
@@ -156,6 +156,7 @@ fn handle_interactive(args: &Cli, item: &Path) {
 
 #[cfg(test)]
 mod test {
+    use std::path::Path;
     use std::{fs, path};
 
     use crate::core::args::Cli;
@@ -169,10 +170,10 @@ mod test {
         assert!(!is_root);
     }
     #[test]
-    fn single_file_in_dir_root() {
+    fn revome_files_in_some_dir_from_root() {
         let base_dir = std::env::current_dir()
             .unwrap()
-            .join("trash/tests/single_file_in_dir_root");
+            .join("trash/tests/revome_files_in_some_dir_from_root");
         fs::create_dir_all(&base_dir).unwrap();
         let files = vec![
             base_dir.join("file1.txt"),
@@ -204,8 +205,92 @@ mod test {
             assert!(!path::Path::new(&filename).exists())
         }
     }
-    //#[test]
-    //fn single_dir_in_dir_root() {
-    //    fs::create_dir_all("trash/tests/single_dir_in_dir_root/test_dir").unwrap();
-    //}
+    #[test]
+    fn revome_dirs_in_some_dir_from_root() {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/revome_dirs_in_some_dir_from_root");
+        fs::create_dir_all(&base_dir).unwrap();
+        let dirs = vec![
+            base_dir.join("dir1"),
+            base_dir.join("dir2"),
+            base_dir.join("dir3"),
+        ];
+        for dirnames in &dirs {
+            fs::create_dir(dirnames).unwrap();
+        }
+
+        // recursive flags test
+        let args = Cli {
+            file: Some(dirs.clone()),
+            interactive: None,
+            recursive: true,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            #[cfg(feature = "extra_commands")]
+            dev: false,
+            force: None,
+            list: false,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+        init_remove(dirs.clone(), &args).unwrap();
+        for filename in &dirs {
+            assert!(!path::Path::new(&filename).exists())
+        }
+    }
+    #[test]
+    fn force_revome_dirs_in_some_dir_from_root() {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/force_revome_dirs_in_some_dir_from_root");
+        if !base_dir.exists() {
+            fs::create_dir_all(&base_dir).unwrap();
+        }
+        let dirs = vec![
+            base_dir.join("dir1"),
+            base_dir.join("dir2"),
+            base_dir.join("dir3"),
+        ];
+        for dirnames in &dirs {
+            if !dirnames.exists() {
+                fs::create_dir(dirnames).unwrap();
+            }
+        }
+
+        // force flags test
+        let args = Cli {
+            file: None,
+            interactive: None,
+            recursive: false,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            #[cfg(feature = "extra_commands")]
+            dev: false,
+            force: Some(dirs.clone()),
+            list: false,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+        if let Some(forece_file) = args.force {
+        for item in forece_file {
+            if Path::new(&item).exists() {
+                if item.is_dir() {
+                    fs::remove_dir_all(item).expect("Error while removing dirs");
+                } else {
+                    fs::remove_file(item).expect("Error while removing files");
+                }
+            } else {
+                println!("Path didnt exists");
+            }
+        }
+    }
+        for filename in &dirs {
+            assert!(!path::Path::new(&filename).exists())
+        }
+    }
 }
