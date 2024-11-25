@@ -15,38 +15,17 @@ use crate::{prompt_yes, show_error, verbose};
 #[allow(unused_imports)]
 use super::args::{Cli, InteractiveMode};
 
-pub fn handle_interactive_once(args: &Cli) -> bool {
-    let items = args.file.as_ref().unwrap();
-    if args.interactive == Some(InteractiveMode::Once) && (items.len() > 3 || args.recursive) {
-        let msg: String = format!(
-            "remove {} {}{}",
-            items.len(),
-            if items.len() > 1 {
-                "arguments"
-            } else {
-                "argument"
-            },
-            if args.recursive { " recursively?" } else { "?" }
-        );
-        if prompt_yes!("{}", msg) {
-            return true;
-        }
-    }
-    false
-}
-
 pub type RoError<'a, T> = Result<T, super::error::Error<'a>>;
 
 fn init_checks(item: &Path) -> RoError<()> {
-    //if item.to_string_lossy() == dirs::home_dir().unwrap().to_string_lossy() {
-    //    println!("{}", item.to_string_lossy());
-    //    println!("{}", dirs::home_dir().unwrap().to_string_lossy());
-    //    return Err(crate::core::error::Error::IsHome(item));
-    //}
     if item.parent().is_none() && item.has_root() {
         return Err(crate::core::error::Error::IsRoot(item));
     }
     Ok(())
+}
+
+pub fn normal_remove(_args: &Cli) {
+    show_error!("sudo support is work in progress");
 }
 
 fn core_remove(args: &Cli, item: &Path) {
@@ -59,8 +38,17 @@ fn core_remove(args: &Cli, item: &Path) {
     trace!("trash path recursive true: {:?}", trash_path);
     if check_root() {
         trace!("is root user");
-        show_error!("sudo support is work in progress");
-        // prompt_yes!("there is no trash dir for sudo user, do you wanna remove the file?")
+        if prompt_yes!(
+            "Can't move item to trash dir while using sudo. Do you wanna remove {} {} permanently?",
+            if item.is_file() || item.is_symlink() {
+                "file"
+            } else {
+                "dir"
+            },
+            item.display()
+        ) {
+            normal_remove(args)
+        }
     } else {
         trace!("is normal user");
         let rename_result = fs::rename(
@@ -104,31 +92,46 @@ fn core_remove(args: &Cli, item: &Path) {
 }
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
-    let enties = filter_paths(items, args).unwrap_or_else(|_| {
-        // show_error!("{}", e);
-        Vec::new()
-    });
-
+    let entries = match filter_paths(items, args) {
+        Ok(filtered) => filtered,
+        Err(e) => {
+            eprintln!("{}", e);
+            Vec::with_capacity(0)
+        }
+    };
     handle_interactive_once(args);
-    for item in &enties {
+    for item in &entries {
         if args.list {
             println!("{}", item.display());
+        } else if let Err(e) = init_checks(item) {
+            eprintln!("Error: {}", e); // prints Error::IsRoot
+            continue;
         } else {
-            // let is_root = item.parent().is_none() && item.has_root();
-            // if is_root {
-            if let Err(e) = init_checks(item) {
-                eprintln!("Error: {}", e); // prints my custom error
-                continue;
-                //   }
-                //  show_error!("{} is root!", item.display());
-                //   continue;
-            } else {
-                handle_interactive(args, item)
-            }
+            handle_interactive(args, item)
         }
     }
-    trace!("{:#?}", enties);
+    trace!("{:#?}", entries);
     Ok(())
+}
+
+fn handle_interactive_once(args: &Cli) -> bool {
+    let items = args.file.as_ref().unwrap();
+    if args.interactive == Some(InteractiveMode::Once) && (items.len() > 3 || args.recursive) {
+        let msg: String = format!(
+            "remove {} {}{}",
+            items.len(),
+            if items.len() > 1 {
+                "arguments"
+            } else {
+                "argument"
+            },
+            if args.recursive { " recursively?" } else { "?" }
+        );
+        if prompt_yes!("{}", msg) {
+            return true;
+        }
+    }
+    false
 }
 
 fn handle_interactive(args: &Cli, item: &Path) {

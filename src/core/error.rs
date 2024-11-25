@@ -23,7 +23,7 @@ impl<'a> fmt::Display for Error<'a> {
             ),
             Error::IsHome(path) => write!(f, "`{}` is home!", path.display()),
             Error::PatternNoMatch(pat) => {
-                write!(f, "No files found matching the pattern `{}`.", pat)
+                write!(f, "roxide: No files found matching the pattern `{}`.", pat)
             }
             Error::IoError(e) => write!(f, "Error: {}", e),
         }

@@ -11,6 +11,7 @@ use walkdir::{DirEntry, WalkDir};
 use crate::show_error;
 
 use super::args::Cli;
+use super::rm::RoError;
 
 pub fn is_hidden(entry: &DirEntry) -> bool {
     entry
@@ -22,8 +23,9 @@ pub fn is_hidden(entry: &DirEntry) -> bool {
 
 /// # sort
 /// this this the core of roxide
-/// it will take the arguments [ recursive and pattern ] and returns items to delete in a vec of PathBuf
-pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> Result<Vec<PathBuf>, anyhow::Error> {
+/// it will take the arguments [ recursive and pattern ]
+/// and returns items to delete in a vec of PathBuf
+pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> RoError<Vec<PathBuf>> {
     let mut files: Vec<PathBuf> = Vec::new();
     trace!("{:?}", &items);
     for item in &items {
@@ -39,7 +41,7 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> Result<Vec<PathBuf>, any
                     for entry in item {
                         let walker = WalkDir::new(entry).into_iter();
                         for entry in walker.into_iter().filter_entry(|e| !is_hidden(e)) {
-                            let entry = entry.context("no file matching the pattern")?;
+                            let entry = entry.context("no file matching the pattern").unwrap();
                             if entry.path().is_dir() {
                                 continue;
                             }
@@ -91,8 +93,11 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> Result<Vec<PathBuf>, any
             continue;
         }
     }
-    if files.is_empty() {
-        return Err(anyhow::anyhow!("No files matched the given conditions."));
+    match &args.pattern {
+        Some(pat) if files.is_empty() => {
+            return Err(crate::core::error::Error::PatternNoMatch(pat.to_string()));
+        }
+        _ => {}
     }
     Ok(files)
 }
