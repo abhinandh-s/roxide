@@ -15,13 +15,6 @@ use crate::{prompt_yes, show_error, verbose};
 #[allow(unused_imports)]
 use super::args::{Cli, InteractiveMode};
 
-/// TODO:
-/// rm --interactive=always trash/ -r
-/// rm: descend into directory 'trash/'? y
-/// rm: descend into directory 'trash/one'? y
-/// rm: remove regular empty file 'trash/one/two.txt'? n
-/// rm: remove directory 'trash/one'? n
-/// rm: remove directory 'trash/'? n
 pub fn handle_interactive_once(args: &Cli) -> bool {
     let items = args.file.as_ref().unwrap();
     if args.interactive == Some(InteractiveMode::Once) && (items.len() > 3 || args.recursive) {
