@@ -240,7 +240,6 @@ mod test {
             recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
-            #[cfg(feature = "extra_commands")]
             force: None,
             list: false,
             verbose: false,
@@ -276,7 +275,6 @@ mod test {
             recursive: true,
             #[cfg(feature = "extra_commands")]
             check: false,
-            #[cfg(feature = "extra_commands")]
             dir: false,
             force: None,
             list: false,
@@ -316,7 +314,6 @@ mod test {
             recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
-            #[cfg(feature = "extra_commands")]
             dir: false,
             force: Some(dirs.clone()),
             list: false,
@@ -364,7 +361,6 @@ mod test {
             recursive: true,
             #[cfg(feature = "extra_commands")]
             check: false,
-            #[cfg(feature = "extra_commands")]
             dir: false,
             force: None,
             list: true,
@@ -402,7 +398,6 @@ mod test {
             recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
-            #[cfg(feature = "extra_commands")]
             dir: false,
             force: None,
             list: false,
