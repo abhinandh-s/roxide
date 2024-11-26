@@ -78,7 +78,7 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> RoError<Vec<PathBuf>> {
                     }
                 }
                 (false, false) => {
-                    if item.is_file() {
+                    if item.is_file() || args.dir {
                         files.push(item.to_path_buf())
                     } else {
                         show_error!("cannot remove '{}': Is a directory", item.display());

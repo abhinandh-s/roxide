@@ -1,11 +1,12 @@
 #![allow(unused_labels)]
 
 use std::env::current_dir;
-use std::fs;
+use std::fs::{self, remove_dir, File};
 use std::path::{Path, PathBuf};
 
 use log::*;
 
+use crate::core::error::Error;
 use crate::core::filter::filter_paths;
 use crate::core::history::write_history;
 use crate::core::trash::Trash;
@@ -19,8 +20,17 @@ pub type RoError<'a, T> = Result<T, super::error::Error<'a>>;
 
 fn init_checks(item: &Path) -> RoError<()> {
     if item.parent().is_none() && item.has_root() {
-        return Err(crate::core::error::Error::IsRoot(item));
+        return Err(Error::IsRoot(item));
     }
+    Ok(())
+}
+
+pub fn file_write_permission(path: &Path) -> RoError<()> {
+    match File::options().read(true).write(true).open(path) {
+        Ok(_file) => {}
+        Err(_e) => {}
+    }
+
     Ok(())
 }
 
@@ -39,7 +49,7 @@ fn core_remove(args: &Cli, item: &Path) {
     if check_root() {
         trace!("is root user");
         if prompt_yes!(
-            "Can't move item to trash dir while using sudo. Do you wanna remove {} {} permanently?",
+            "Can't move item to trash dir while using sudo. Do you wanna remove {}: {} permanently?",
             if item.is_file() || item.is_symlink() {
                 "file"
             } else {
@@ -62,13 +72,13 @@ fn core_remove(args: &Cli, item: &Path) {
                 "can't remove {} to trash dir. Do you wanna remove it?",
                 item.display()
             ) {
-                if item.is_dir() {
+                if item.is_file() {
+                    fs::remove_file(item).unwrap();
+                } else {
                     // Removes a directory at this path, after removing all its contents.
                     // This function does **not** follow symbolic links and
                     // it will simply remove the symbolic link itself.
                     fs::remove_dir_all(item).unwrap();
-                } else {
-                    fs::remove_file(item).unwrap();
                 }
             }
         }
@@ -134,12 +144,36 @@ fn handle_interactive_once(args: &Cli) -> bool {
     false
 }
 
+fn remove_empty_dir(path: &Path) {
+    if path.exists() && path.is_dir() {
+        let result = remove_dir(path);
+        match result {
+            Ok(_) => {}
+            Err(_) => {
+                eprintln!("{}", Error::DirectoryNotEmpty)
+            }
+        }
+    } else if !path.exists() {
+        eprintln!("{}", Error::NoSuchFile(path))
+    } else if path.is_file() {
+        eprintln!("{}", Error::NotADirectory(path))
+    }
+}
+
 fn handle_interactive(args: &Cli, item: &Path) {
     // not including InteractiveMode::once and InteractiveMode::Never here
+
     match args.interactive {
         Some(InteractiveMode::Always) => {
             // for item in items
-            if prompt_yes!("do you wanna remove: `{}`?", &item.display()) {
+            if args.dir {
+                if prompt_yes!(
+                    "do you wanna remove normal empty dir: `{}`?",
+                    &item.display()
+                ) {
+                    remove_empty_dir(item)
+                }
+            } else if prompt_yes!("do you wanna remove: `{}`?", &item.display()) {
                 core_remove(args, item)
             }
         }
@@ -152,8 +186,20 @@ fn handle_interactive(args: &Cli, item: &Path) {
                 // dont remove
             }
         }
-        Some(_) => core_remove(args, item),
-        None => core_remove(args, item),
+        Some(_) => {
+            if args.dir {
+                remove_empty_dir(item)
+            } else {
+                core_remove(args, item)
+            }
+        }
+        None => {
+            if args.dir {
+                remove_empty_dir(item)
+            } else {
+                core_remove(args, item)
+            }
+        }
     }
 }
 
@@ -195,12 +241,12 @@ mod test {
             #[cfg(feature = "extra_commands")]
             check: false,
             #[cfg(feature = "extra_commands")]
-            dev: false,
             force: None,
             list: false,
             verbose: false,
             pattern: None,
             command: None,
+            dir: false,
         };
 
         init_remove(files.clone(), &args).unwrap();
@@ -231,7 +277,7 @@ mod test {
             #[cfg(feature = "extra_commands")]
             check: false,
             #[cfg(feature = "extra_commands")]
-            dev: false,
+            dir: false,
             force: None,
             list: false,
             verbose: false,
@@ -271,7 +317,7 @@ mod test {
             #[cfg(feature = "extra_commands")]
             check: false,
             #[cfg(feature = "extra_commands")]
-            dev: false,
+            dir: false,
             force: Some(dirs.clone()),
             list: false,
             verbose: false,
@@ -319,7 +365,7 @@ mod test {
             #[cfg(feature = "extra_commands")]
             check: false,
             #[cfg(feature = "extra_commands")]
-            dev: false,
+            dir: false,
             force: None,
             list: true,
             verbose: false,
@@ -357,7 +403,7 @@ mod test {
             #[cfg(feature = "extra_commands")]
             check: false,
             #[cfg(feature = "extra_commands")]
-            dev: false,
+            dir: false,
             force: None,
             list: false,
             verbose: false,

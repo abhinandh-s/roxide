@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use std::fs;
+use std::fs::{self};
 use std::path::Path;
 
 use self::core::args::{Cli, Commands};
@@ -22,11 +22,6 @@ fn main() {
         // remove_files(items.to_vec(), &cli).unwrap();
     }
 
-    #[cfg(feature = "extra_commands")]
-    if cli.dev {
-
-        // read_config("config.toml").unwrap();
-    }
     #[cfg(feature = "extra_commands")]
     if cli.check {
         checks_init();

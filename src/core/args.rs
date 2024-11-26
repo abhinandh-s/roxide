@@ -46,11 +46,12 @@ pub struct Cli {
     #[arg(short, long)]
     pub verbose: bool,
 
-    #[cfg(feature = "extra_commands")]
-    /// Enable verbose output debugging purpose
+    /// remove empty directories    
     #[arg(short, long)]
-    pub dev: bool,
-
+    pub dir: bool,
+    // given item is not a directory
+    // item doesn't exists
+    // directory is not empty
     #[cfg(feature = "extra_commands")]
     /// Will check health of roxide in user env
     #[arg(short, long)]
