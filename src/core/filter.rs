@@ -21,10 +21,11 @@ pub fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-/// # sort
-/// this this the core of roxide
+/// # filter_paths
+///
 /// it will take the arguments [ recursive and pattern ]
 /// and returns items to delete in a vec of PathBuf
+///
 pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> RoError<Vec<PathBuf>> {
     let mut files: Vec<PathBuf> = Vec::new();
     trace!("{:?}", &items);
@@ -33,7 +34,7 @@ pub fn filter_paths(items: Vec<PathBuf>, args: &Cli) -> RoError<Vec<PathBuf>> {
             let condition = |filename: &OsStr| {
                 filename
                     .to_str()
-                    .map(|f| f.contains(args.pattern.as_deref().unwrap_or("")))
+                    .map(|f| f.contains(args.pattern.as_deref().unwrap_or(""))) 
                     .unwrap_or(false)
             };
             match (args.recursive, args.pattern.is_some()) {

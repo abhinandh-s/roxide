@@ -3,6 +3,9 @@ ver := `grep '^version =' Cargo.toml | sed 's/version = "\(.*\)"/\1/'`
 dev:
   nix develop ./nix/dev --command fish
 
+test:
+  cargo test
+
 build:
   cargo build --release
 

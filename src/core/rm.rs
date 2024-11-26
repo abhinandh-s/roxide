@@ -162,10 +162,12 @@ fn remove_empty_dir(path: &Path) {
 
 fn handle_interactive(args: &Cli, item: &Path) {
     // not including InteractiveMode::once and InteractiveMode::Never here
-
     match args.interactive {
         Some(InteractiveMode::Always) => {
             // for item in items
+            // if item.is_symlink() {
+            //    println!("got a symlink");
+            // }
             if args.dir {
                 if prompt_yes!(
                     "do you wanna remove normal empty dir: `{}`?",
@@ -410,5 +412,118 @@ mod test {
         assert!(!path::Path::new(&base_dir.join("file1.txt")).exists());
         assert!(path::Path::new(&base_dir.join("file2.pdf")).exists());
         assert!(path::Path::new(&base_dir.join("file3")).exists());
+    }
+    #[test]
+    fn dir_flag_test_001() {
+        // propper test empty directory will not fail
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/dir_flag_test_001");
+        fs::create_dir_all(&base_dir).unwrap();
+        let dirs = vec![
+            base_dir.join("dir1"),
+            base_dir.join("dir2"),
+            base_dir.join("dir3"),
+        ];
+        for dirnames in &dirs {
+            fs::create_dir(dirnames).unwrap();
+        }
+
+        // recursive flags test
+        let args = Cli {
+            file: Some(dirs.clone()),
+            interactive: None,
+            recursive: false,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            dir: true,
+            force: None,
+            list: false,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+        init_remove(dirs.clone(), &args).unwrap();
+        for filename in &dirs {
+            assert!(!path::Path::new(&filename).exists())
+        }
+    }
+    #[test]
+    fn dir_flag_test_002() {
+        // -> Not an empty directory Error
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/dir_flag_test_002");
+        fs::create_dir_all(&base_dir).unwrap();
+        let dirs = vec![
+            base_dir.join("dir1"),
+            base_dir.join("dir2"),
+            base_dir.join("dir3"),
+        ];
+        for dirnames in &dirs {
+            if !dirnames.exists() {
+                fs::create_dir(dirnames).unwrap();
+            }
+        }
+        let files = vec![
+            base_dir.join("dir1/file1.txt"),
+            base_dir.join("dir2/file2.pdf"),
+            base_dir.join("dir3/file3"),
+        ];
+        for filename in &files {
+            if !filename.exists() {
+                fs::write(filename, "some contents").unwrap();
+            }
+        }
+        // recursive flags test
+        let args = Cli {
+            file: Some(dirs.clone()),
+            interactive: None,
+            recursive: false,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            dir: true,
+            force: None,
+            list: false,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+        init_remove(dirs.clone(), &args).unwrap();
+        for filename in &dirs {
+            assert!(path::Path::new(&filename).exists())
+        }
+    }
+    #[test]
+    fn dir_flag_test_003() {
+        // -> Not an empty directory Error
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests/dir_flag_test_003");
+        fs::create_dir_all(&base_dir).unwrap();
+        let dirs = vec![
+            base_dir.join("dir1"),
+            base_dir.join("dir2"),
+            base_dir.join("dir3"),
+        ];
+        // recursive flags test
+        let args = Cli {
+            file: Some(dirs.clone()),
+            interactive: None,
+            recursive: false,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            dir: true,
+            force: None,
+            list: false,
+            verbose: false,
+            pattern: None,
+            command: None,
+        };
+
+       let result = init_remove(dirs.clone(), &args);
+       assert!(result.is_ok()); 
     }
 }

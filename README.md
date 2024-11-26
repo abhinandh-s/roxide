@@ -14,6 +14,7 @@
 - `roxide revert` : restores perviously removed file/directory to its pervious path 
 - `roxide -r | --recursive` : Remove directories and their contents recursively
 - `roxide -f | --force` : Remove without moving to trash directory
+- `roxide -d | --dir` : Removes empty directories
 - `roxide -v | --verbose` : will print the file name and its out path
 - `roxide some/dir/ -p .pdf`: will remove files matching the pattern from some/dir
 - `roxide some/dir/ -rp .pdf`: will recursively remove files matching the pattern from some/dir
