@@ -1,6 +1,7 @@
 pub mod args;
 pub mod error;
 pub mod filter;
+pub mod gc;
 pub mod history;
 pub mod macros;
 pub mod rm;
