@@ -9,8 +9,6 @@ use std::vec;
 use dirs::data_dir;
 use log::debug;
 
-use crate::show_error;
-
 /// # LogId unique id which represents year, month, date, hour, minute and second
 /// in this order itself. ("%Y%m%d%H%M%S")
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -51,18 +49,12 @@ pub struct History {
 }
 
 impl History {
-    fn log_dir() -> std::path::PathBuf {
-        data_dir().map(|d| d.join("roxide")).unwrap_or_else(|| {
-            let binding = data_dir()
-                .expect("roxide: can't locate users local data directory")
-                .join("roxide");
-            let path = binding.as_path();
-            create_dir_all(path).unwrap_or_else(|_| show_error!("can't create data dir"));
-            path.to_path_buf()
-        })
-    }
     pub fn write(history: History) -> anyhow::Result<()> {
-        let log_file = Self::log_dir().join("history.log");
+        let log_dir = data_dir().unwrap().join("roxide");
+        if !log_dir.exists() {
+            create_dir_all(log_dir).unwrap();
+        }
+        let log_file = data_dir().unwrap().join("roxide/history.log");
         if !log_file.exists() {
             File::create(&log_file).unwrap();
         }
