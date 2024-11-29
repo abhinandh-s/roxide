@@ -25,7 +25,7 @@ pub trait TrashOps {
     }
 }
 
-impl<'a> TrashOps for Trash<'a> {
+impl TrashOps for Trash<'_> {
     fn exists_in_trash(&self) -> bool
     where
         Self: AsRef<std::path::Path>,
@@ -34,7 +34,7 @@ impl<'a> TrashOps for Trash<'a> {
     }
 }
 
-impl<'a> Trash<'a> {
+impl Trash<'_> {
     pub fn get_log_id(&self) -> (String, String) {
         (
             current_time().format("%Y%m%d%H%M%S").to_string(),

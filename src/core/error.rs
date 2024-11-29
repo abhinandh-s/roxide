@@ -14,7 +14,7 @@ pub enum Error<'a> {
     // Other(String),
 }
 
-impl<'a> fmt::Display for Error<'a> {
+impl fmt::Display for Error<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::DirectoryNotEmpty => write!(f, "roxide: Directory not empty"),
@@ -40,7 +40,7 @@ impl<'a> fmt::Display for Error<'a> {
     }
 }
 
-impl<'a> std::error::Error for Error<'a> {
+impl std::error::Error for Error<'_> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Error::IoError(e) => Some(e),
@@ -49,7 +49,7 @@ impl<'a> std::error::Error for Error<'a> {
     }
 }
 
-impl<'a> From<std::io::Error> for Error<'a> {
+impl From<std::io::Error> for Error<'_> {
     fn from(value: std::io::Error) -> Self {
         Error::IoError(value)
     }

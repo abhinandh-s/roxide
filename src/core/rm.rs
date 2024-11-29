@@ -3,15 +3,20 @@
 use std::env::current_dir;
 use std::fs::{self, remove_dir, File};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use log::*;
 
-use crate::core::error::Error;
-use crate::core::filter::filter_paths;
-use crate::core::history::write_history;
-use crate::core::trash::Trash;
-use crate::core::utils::{check_root, trash_dir};
-use crate::{prompt_yes, show_error, verbose};
+use crate::{
+    core::{
+        error::Error,
+        filter::PathFilter,
+        history::{History, LogId, TrashMeta},
+        trash::Trash,
+        utils::{check_root, trash_dir},
+    },
+    prompt_yes, show_error, verbose,
+};
 
 #[allow(unused_imports)]
 use super::args::{Cli, InteractiveMode};
@@ -25,7 +30,8 @@ fn init_checks(item: &Path) -> RoError<()> {
     Ok(())
 }
 
-pub fn file_write_permission(path: &Path) -> RoError<()> {
+#[allow(dead_code)]
+fn file_write_permission(path: &Path) -> RoError<()> {
     match File::options().read(true).write(true).open(path) {
         Ok(_file) => {}
         Err(_e) => {}
@@ -91,18 +97,20 @@ fn core_remove(args: &Cli, item: &Path) {
                     .join(trash.trash_name(trash.get_log_id().1))
                     .display()
             );
-            write_history(
-                id.0,
-                item_path.to_str().unwrap().to_string(),
-                trash_path.to_str().unwrap().to_string(),
-            )
-            .unwrap();
+            let history = History {
+                log_id: LogId::from_str(id.0.as_str()).unwrap(),
+                metadata: TrashMeta {
+                    file_path: item_path,
+                    trash_path,
+                },
+            };
+            History::write(history).unwrap();
         }
     }
 }
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
-    let entries = match filter_paths(items, args) {
+    let entries = match PathFilter::init(items, args) {
         Ok(filtered) => filtered,
         Err(e) => {
             eprintln!("{}", e);
@@ -523,7 +531,7 @@ mod test {
             command: None,
         };
 
-       let result = init_remove(dirs.clone(), &args);
-       assert!(result.is_ok()); 
+        let result = init_remove(dirs.clone(), &args);
+        assert!(result.is_ok());
     }
 }

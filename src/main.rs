@@ -1,17 +1,15 @@
 use clap::Parser;
 
-use std::fs::{self};
-use std::path::Path;
+use std::{fs, path::Path};
 
-use self::core::args::{Cli, Commands};
-#[cfg(feature = "extra_commands")]
-use self::core::check::checks_init;
-// #[cfg(feature = "extra_commands")]
-// use self::core::config::read_config;
-use self::core::history::read_history;
-use self::core::rm::init_remove;
+use self::core::{
+    args::{Cli, Commands},
+    history::History,
+    rm::init_remove,
+};
 
 pub mod core;
+pub mod utils;
 
 fn main() {
     env_logger::init();
@@ -19,12 +17,6 @@ fn main() {
 
     if let Some(items) = &cli.file {
         init_remove(items.to_vec(), &cli).unwrap();
-        // remove_files(items.to_vec(), &cli).unwrap();
-    }
-
-    #[cfg(feature = "extra_commands")]
-    if cli.check {
-        checks_init();
     }
 
     if let Some(forece_file) = cli.force {
@@ -42,7 +34,7 @@ fn main() {
     }
     match &cli.command {
         Some(Commands::Revert {}) => {
-            read_history().unwrap();
+            History::init_revert().unwrap();
         }
         None => {}
     }
