@@ -2,6 +2,7 @@
 
 use std::env::current_dir;
 use std::fs::{self, remove_dir, File};
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -40,31 +41,29 @@ fn file_write_permission(path: &Path) -> RoError<()> {
     Ok(())
 }
 
-pub fn normal_remove(_args: &Cli) {
-    show_error!("sudo support is work in progress");
+fn init_force_remove(item: &Path) {
+    if prompt_yes!("Do you wanna remove it PERMANENTLY?") {
+        if item.is_file() {
+            if let Err(e) = fs::remove_file(item) {
+                show_error!("Failed to remove file: {}", e);
+            }
+        } else if item.is_dir() {
+            if let Err(e) = fs::remove_dir_all(item) {
+                show_error!("Failed to remove directory: {}", e);
+            }
+        }
+    }
 }
 
 fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };
     let id = trash.get_log_id();
-    trace!("id: {:?}", id);
     let item_path = current_dir().unwrap().join(item);
-    trace!("item path recursive true: {:?}", item_path);
     let trash_path = trash_dir().join(trash.trash_name(id.1));
-    trace!("trash path recursive true: {:?}", trash_path);
     if check_root() {
         trace!("is root user");
-        if prompt_yes!(
-            "Can't move item to trash dir while using sudo. Do you wanna remove {}: {} permanently?",
-            if item.is_file() || item.is_symlink() {
-                "file"
-            } else {
-                "dir"
-            },
-            item.display()
-        ) {
-            normal_remove(args)
-        }
+        show_error!("Can't move item to trash dir while using sudo.");
+        init_force_remove(item);
     } else {
         trace!("is normal user");
         let rename_result = fs::rename(
@@ -72,22 +71,24 @@ fn core_remove(args: &Cli, item: &Path) {
             trash_dir().join(trash.trash_name(trash.get_log_id().1)),
         );
 
-        if let Err(e) = rename_result {
-            show_error!("Error moving {}: {:?}", item.display(), e);
-            if prompt_yes!(
-                "can't remove {} to trash dir. Do you wanna remove it?",
-                item.display()
-            ) {
-                if item.is_file() {
-                    fs::remove_file(item).unwrap();
-                } else {
-                    // Removes a directory at this path, after removing all its contents.
-                    // This function does **not** follow symbolic links and
-                    // it will simply remove the symbolic link itself.
-                    fs::remove_dir_all(item).unwrap();
-                }
+        if let Err(err) = rename_result {
+            if let io::ErrorKind::CrossesDevices = err.kind() {
+                show_error!(
+                    "`{}` is located on a different device. Can't move item to trash dir.",
+                    item.display()
+                );
+                init_force_remove(item);
+            } else if let io::ErrorKind::PermissionDenied = err.kind() {
+                show_error!(
+                    "Don't have enough permission to remove `{}`.",
+                    item.display()
+                );
+            } else {
+                println!("Error: {}", err);
+                init_force_remove(item);
             }
         }
+
         if args.pattern.is_none() {
             verbose!(
                 args.verbose,
@@ -98,7 +99,7 @@ fn core_remove(args: &Cli, item: &Path) {
                     .display()
             );
             let history = History {
-                log_id: LogId::from_str(id.0.as_str()).unwrap(),
+                log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
                 metadata: TrashMeta {
                     file_path: item_path,
                     trash_path,

@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## 0.2.16 (2024-11-29)
+
+minor Bugfixes
+improved error handling
+
+Features:
+    - added support for sudo
+    - added -d --dir flag
+
 ## 0.1.9 (2024-11-18)
 
 minor bug fix

@@ -20,6 +20,9 @@ push:
 build-dev:
   cargo build --release --features extra_commands
 
+update-rust-analyzer:
+  rustup component add rust-analyzer
+
 build-release:
   cargo build --release
 
