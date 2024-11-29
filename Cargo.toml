@@ -17,6 +17,7 @@ maintenance = { status = "actively-developed" }
 [features]
 default = []
 extra_commands = []
+extra_errors = []
 
 [dependencies]
 anyhow = "1.0.93"

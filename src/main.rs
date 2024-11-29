@@ -1,5 +1,3 @@
-#![feature(io_error_more)]
-
 use clap::Parser;
 
 use std::{fs, path::Path};
