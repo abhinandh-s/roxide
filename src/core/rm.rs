@@ -1,12 +1,13 @@
 #![allow(unused_labels)]
 
 use std::env::current_dir;
-use std::fs::{self, remove_dir, File};
+use std::fs::{self, create_dir_all, remove_dir, write, File};
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use dirs::cache_dir;
 use log::*;
 
 use crate::{
@@ -56,11 +57,20 @@ fn init_force_remove(item: &Path) {
     }
 }
 
-fn check_cross_device<'a>(item: &'a Path, trash: &'a Path) -> RoError<'a, ()> {
+fn check_cross_device(item: &Path) -> RoError<'_, ()> {
     let item_metadata = fs::metadata(item).unwrap().dev();
-    let trash_metadata = fs::metadata(trash).unwrap().dev();
+    // we need to create a file with trash name to check this
+    create_dir_all(cache_dir().unwrap().join("roxide")).unwrap();
+    write(cache_dir().unwrap().join("roxide/state.txt"), "Just a file to check CrossesDevices Error.").unwrap();
+    let file_in_dev = cache_dir()
+        .unwrap()
+        .join("roxide/state.txt")
+        .metadata()
+        .unwrap()
+        .dev();
+    // let _trash_metadata = fs::metadata(trash).unwrap().dev();
     // check if the devices are different
-    if item_metadata != trash_metadata {
+    if item_metadata != file_in_dev {
         return Err(Error::CrossesDevices(item));
     }
     Ok(())
@@ -72,37 +82,42 @@ fn core_remove(args: &Cli, item: &Path) {
     let item_path = current_dir().unwrap().join(item);
     let trash_path = trash_dir().join(trash.trash_name(id.1));
 
-    // FIX: 2024-11-29
-    match check_cross_device(&item_path, &trash_path) {
-        Ok(k) => {},
-        Err(err) => {}
-    }
-
     if check_root() {
         trace!("is root user");
         show_error!("Can't move item to trash dir while using sudo.");
         init_force_remove(item);
     } else {
         trace!("is normal user");
-        let rename_result = fs::rename(
-            &item_path,
-            trash_dir().join(trash.trash_name(trash.get_log_id().1)),
-        );
 
-        if let Err(err) = rename_result {
-           /* if let io::ErrorKind::CrossesDevices = err.kind() {
-                show_error!(
-                    "`{}` is located on a different device. Can't move item to trash dir.",
-                    item.display()
+        // FIX: 2024-11-29
+        match check_cross_device(&item_path) {
+            Ok(()) => {
+                let rename_result = fs::rename(
+                    &item_path,
+                    trash_dir().join(trash.trash_name(trash.get_log_id().1)),
                 );
-                init_force_remove(item);
-            } else */ if let io::ErrorKind::PermissionDenied = err.kind() {
-                show_error!(
-                    "Don't have enough permission to remove `{}`.",
-                    item.display()
-                );
-            } else {
-                println!("Error: {}", err);
+
+                if let Err(err) = rename_result {
+                    /* if let io::ErrorKind::CrossesDevices = err.kind() {
+                        show_error!(
+                            "`{}` is located on a different device. Can't move item to trash dir.",
+                            item.display()
+                        );
+                        init_force_remove(item);
+                    } else */
+                    if let io::ErrorKind::PermissionDenied = err.kind() {
+                        show_error!(
+                            "Don't have enough permission to remove `{}`.",
+                            item.display()
+                        );
+                    } else {
+                        println!("Error: {}", err);
+                        init_force_remove(item);
+                    }
+                }
+            }
+            Err(err) => {
+                show_error!("{}", err);
                 init_force_remove(item);
             }
         }

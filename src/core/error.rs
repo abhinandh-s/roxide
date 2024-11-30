@@ -18,7 +18,7 @@ pub enum Error<'a> {
 impl fmt::Display for Error<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::CrossesDevices(path) => write!(f, "roxide: `{}` is located on a different device. Can't move item to trash dir.", path.display()),
+            Error::CrossesDevices(path) => write!(f, "`{}` is located on a different device. Can't move item to trash dir.", path.display()),
             Error::DirectoryNotEmpty => write!(f, "roxide: Directory not empty"),
             Error::NoSuchFile(path) => {
                 write!(f, "roxide: File not found: {}", path.to_string_lossy())
