@@ -12,7 +12,6 @@ pub enum Error<'a> {
     // InvalidPattern(String),
     PatternNoMatch(String),
     IoError(std::io::Error),
-    Crossesdevices(&&Path),
     // Other(String),
 }
 
