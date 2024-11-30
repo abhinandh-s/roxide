@@ -4,7 +4,6 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 
-use anyhow::Context;
 use log::*;
 use walkdir::{DirEntry, WalkDir};
 
@@ -58,7 +57,7 @@ impl PathFilter {
                         for entry in item {
                             let walker = WalkDir::new(entry).into_iter();
                             for entry in walker.into_iter().filter_entry(|e| !Self::is_hidden(e)) {
-                                let entry = entry.context("no file matching the pattern").unwrap();
+                                let entry = entry.unwrap();
                                 if entry.path().is_dir() {
                                     continue;
                                 }

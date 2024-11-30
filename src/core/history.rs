@@ -9,6 +9,8 @@ use std::vec;
 use dirs::data_dir;
 use log::debug;
 
+use super::rm::RoError;
+
 /// # LogId unique id which represents year, month, date, hour, minute and second
 /// in this order itself. ("%Y%m%d%H%M%S")
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -49,7 +51,7 @@ pub struct History {
 }
 
 impl History {
-    pub fn write(history: History) -> anyhow::Result<()> {
+    pub fn write<'a>(history: History) -> RoError<'a, ()> {
         let log_dir = data_dir().unwrap().join("roxide");
         if !log_dir.exists() {
             create_dir_all(log_dir).unwrap();

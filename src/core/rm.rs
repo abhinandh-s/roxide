@@ -1,4 +1,4 @@
-#![allow(unused_labels)]
+#![allow(unused_labels, unused_imports)]
 
 use std::env::current_dir;
 use std::fs::{self, remove_dir, File};
@@ -20,7 +20,6 @@ use crate::{
     prompt_yes, show_error, verbose,
 };
 
-#[allow(unused_imports)]
 use super::args::{Cli, InteractiveMode};
 use super::checks::check_root;
 
@@ -33,18 +32,8 @@ fn init_checks(item: &Path) -> RoError<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
-fn file_write_permission(path: &Path) -> RoError<()> {
-    match File::options().read(true).write(true).open(path) {
-        Ok(_file) => {}
-        Err(_e) => {}
-    }
-
-    Ok(())
-}
-
 fn init_force_remove(item: &Path) {
-    if prompt_yes!("Do you wanna remove it PERMANENTLY?") {
+    if prompt_yes!("remove it PERMANENTLY?") {
         if item.is_file() {
             if let Err(e) = fs::remove_file(item) {
                 show_error!("Failed to remove file: {}", e);
@@ -132,7 +121,7 @@ fn core_remove(args: &Cli, item: &Path) {
     }
 }
 
-pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> anyhow::Result<(), anyhow::Error> {
+pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> RoError<()> {
     let entries = match PathFilter::init(items, args) {
         Ok(filtered) => filtered,
         Err(e) => {
@@ -192,31 +181,27 @@ fn remove_empty_dir(path: &Path) {
 }
 
 fn handle_interactive(args: &Cli, item: &Path) {
+    // File::open(path) doesn't open the file in write mode
+    // So, we need to use file options to open it in write mode to check if we have write permission
+    #[cfg(feature = "extra_commands")]
+    let file_write_permission = File::options().read(true).write(true).open(item).is_ok();
     // not including InteractiveMode::once and InteractiveMode::Never here
     match args.interactive {
         Some(InteractiveMode::Always) => {
-            // for item in items
-            // if item.is_symlink() {
-            //    println!("got a symlink");
-            // }
             if args.dir {
-                if prompt_yes!(
-                    "do you wanna remove normal empty dir: `{}`?",
-                    &item.display()
-                ) {
+                if prompt_yes!("remove normal empty dir: `{}`?", &item.display()) {
                     remove_empty_dir(item)
                 }
-            } else if prompt_yes!("do you wanna remove: `{}`?", &item.display()) {
+            } else if prompt_yes!("remove: `{}`?", &item.display()) {
                 core_remove(args, item)
             }
         }
-        // TODO:
         #[cfg(feature = "extra_commands")]
         Some(InteractiveMode::PromptProtected) => {
-            if prompt_yes!("msg") {
-                // single_core_remove();
-            } else {
-                // dont remove
+            if !file_write_permission
+                && prompt_yes!("write protected file, remove: `{}`?", &item.display())
+            {
+                core_remove(args, item);
             }
         }
         Some(_) => {
@@ -238,7 +223,8 @@ fn handle_interactive(args: &Cli, item: &Path) {
 
 #[cfg(test)]
 mod test {
-    use std::path::Path;
+    use std::borrow::Cow;
+    use std::path::{Path, PathBuf};
     use std::{fs, path};
 
     use crate::core::args::Cli;
@@ -262,13 +248,14 @@ mod test {
             base_dir.join("file2.pdf"),
             base_dir.join("file3"),
         ];
-        for filename in &files {
+        let files_cow = Cow::Borrowed(&files);
+        for filename in files_cow.iter() {
             fs::write(filename, "some contents").unwrap();
         }
 
         // no flags test
         let args = Cli {
-            file: Some(files.clone()),
+            file: Some(files.to_vec()),
             interactive: None,
             recursive: false,
             #[cfg(feature = "extra_commands")]
@@ -281,7 +268,7 @@ mod test {
             dir: false,
         };
 
-        init_remove(files.clone(), &args).unwrap();
+        init_remove(files_cow.to_vec(), &args).unwrap();
         for filename in &files {
             assert!(!path::Path::new(&filename).exists())
         }
@@ -297,13 +284,14 @@ mod test {
             base_dir.join("dir2"),
             base_dir.join("dir3"),
         ];
-        for dirnames in &dirs {
+        let dirs_cow = Cow::Borrowed(&dirs);
+        for dirnames in dirs_cow.iter() {
             fs::create_dir(dirnames).unwrap();
         }
 
         // recursive flags test
         let args = Cli {
-            file: Some(dirs.clone()),
+            file: Some(dirs_cow.to_vec()),
             interactive: None,
             recursive: true,
             #[cfg(feature = "extra_commands")]
@@ -316,7 +304,7 @@ mod test {
             command: None,
         };
 
-        init_remove(dirs.clone(), &args).unwrap();
+        init_remove(dirs_cow.to_vec(), &args).unwrap();
         for filename in &dirs {
             assert!(!path::Path::new(&filename).exists())
         }
@@ -334,7 +322,8 @@ mod test {
             base_dir.join("dir2"),
             base_dir.join("dir3"),
         ];
-        for dirnames in &dirs {
+        let dirs_cow = Cow::Borrowed(&dirs);
+        for dirnames in dirs.iter() {
             if !dirnames.exists() {
                 fs::create_dir(dirnames).unwrap();
             }
@@ -348,7 +337,7 @@ mod test {
             #[cfg(feature = "extra_commands")]
             check: false,
             dir: false,
-            force: Some(dirs.clone()),
+            force: Some(dirs_cow.to_vec()),
             list: false,
             verbose: false,
             pattern: None,
@@ -383,13 +372,14 @@ mod test {
             base_dir.join("file2.pdf"),
             base_dir.join("file3"),
         ];
-        for filename in &files {
+        let files_cow = Cow::Borrowed(&files);
+        for filename in files_cow.iter() {
             fs::write(filename, "some contents").unwrap();
         }
 
         // recursive flags test
         let args = Cli {
-            file: Some(files.clone()),
+            file: Some(files_cow.to_vec()),
             interactive: None,
             recursive: true,
             #[cfg(feature = "extra_commands")]
@@ -402,7 +392,7 @@ mod test {
             command: None,
         };
 
-        init_remove(files.clone(), &args).unwrap();
+        init_remove(files_cow.to_vec(), &args).unwrap();
         for filename in &files {
             assert!(path::Path::new(&filename).exists())
         }
@@ -418,7 +408,8 @@ mod test {
             base_dir.join("file2.pdf"),
             base_dir.join("file3"),
         ];
-        for filename in &files {
+        let files_cow = Cow::Borrowed(&files);
+        for filename in files.iter() {
             if !filename.exists() {
                 fs::write(filename, "some contents").unwrap();
             }
@@ -426,7 +417,7 @@ mod test {
 
         // no flags test
         let args = Cli {
-            file: Some(files.clone()),
+            file: Some(files_cow.to_vec()),
             interactive: None,
             recursive: false,
             #[cfg(feature = "extra_commands")]
@@ -439,7 +430,7 @@ mod test {
             command: None,
         };
 
-        init_remove(files.clone(), &args).unwrap();
+        init_remove(files_cow.to_vec(), &args).unwrap();
         assert!(!path::Path::new(&base_dir.join("file1.txt")).exists());
         assert!(path::Path::new(&base_dir.join("file2.pdf")).exists());
         assert!(path::Path::new(&base_dir.join("file3")).exists());
@@ -456,13 +447,14 @@ mod test {
             base_dir.join("dir2"),
             base_dir.join("dir3"),
         ];
-        for dirnames in &dirs {
+        let dirs_cow = Cow::Borrowed(&dirs);
+        for dirnames in dirs_cow.iter() {
             fs::create_dir(dirnames).unwrap();
         }
 
         // recursive flags test
         let args = Cli {
-            file: Some(dirs.clone()),
+            file: Some(dirs_cow.to_vec()),
             interactive: None,
             recursive: false,
             #[cfg(feature = "extra_commands")]
@@ -475,7 +467,7 @@ mod test {
             command: None,
         };
 
-        init_remove(dirs.clone(), &args).unwrap();
+        init_remove(dirs_cow.to_vec(), &args).unwrap();
         for filename in &dirs {
             assert!(!path::Path::new(&filename).exists())
         }
@@ -492,7 +484,8 @@ mod test {
             base_dir.join("dir2"),
             base_dir.join("dir3"),
         ];
-        for dirnames in &dirs {
+        let dirs_cow = Cow::Borrowed(&dirs);
+        for dirnames in dirs_cow.iter() {
             if !dirnames.exists() {
                 fs::create_dir(dirnames).unwrap();
             }
@@ -509,7 +502,7 @@ mod test {
         }
         // recursive flags test
         let args = Cli {
-            file: Some(dirs.clone()),
+            file: Some(dirs_cow.to_vec()),
             interactive: None,
             recursive: false,
             #[cfg(feature = "extra_commands")]
@@ -521,8 +514,7 @@ mod test {
             pattern: None,
             command: None,
         };
-
-        init_remove(dirs.clone(), &args).unwrap();
+        init_remove(dirs_cow.to_vec(), &args).unwrap();
         for filename in &dirs {
             assert!(path::Path::new(&filename).exists())
         }
@@ -539,9 +531,10 @@ mod test {
             base_dir.join("dir2"),
             base_dir.join("dir3"),
         ];
+        let dirs_cow: Cow<Vec<PathBuf>> = Cow::Borrowed(&dirs);
         // recursive flags test
         let args = Cli {
-            file: Some(dirs.clone()),
+            file: Some(dirs_cow.to_vec()),
             interactive: None,
             recursive: false,
             #[cfg(feature = "extra_commands")]
@@ -553,8 +546,7 @@ mod test {
             pattern: None,
             command: None,
         };
-
-        let result = init_remove(dirs.clone(), &args);
+        let result = init_remove(dirs_cow.to_vec(), &args);
         assert!(result.is_ok());
     }
 }
