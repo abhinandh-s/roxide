@@ -9,7 +9,6 @@ use self::core::{
 };
 
 pub mod core;
-pub mod utils;
 
 fn main() {
     env_logger::init();

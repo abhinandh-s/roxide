@@ -1,28 +1,28 @@
 #![allow(unused_labels)]
 
 use std::env::current_dir;
-use std::fs::{self, create_dir_all, remove_dir, write, File};
+use std::fs::{self, remove_dir, File};
 use std::io;
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use dirs::cache_dir;
 use log::*;
 
+use crate::core::checks::check_cross_device;
 use crate::{
     core::{
         error::Error,
         filter::PathFilter,
         history::{History, LogId, TrashMeta},
         trash::Trash,
-        utils::{check_root, trash_dir},
+        helpers::trash_dir,
     },
     prompt_yes, show_error, verbose,
 };
 
 #[allow(unused_imports)]
 use super::args::{Cli, InteractiveMode};
+use super::checks::check_root;
 
 pub type RoError<'a, T> = Result<T, super::error::Error<'a>>;
 
@@ -57,27 +57,6 @@ fn init_force_remove(item: &Path) {
     }
 }
 
-fn check_cross_device(item: &Path) -> RoError<'_, ()> {
-    let item_metadata = fs::metadata(item).unwrap().dev();
-    // we need to create a file with trash name to check this
-    create_dir_all(cache_dir().unwrap().join("roxide")).unwrap();
-    write(
-        cache_dir().unwrap().join("roxide/state.txt"),
-        "Just a file to check CrossesDevices Error.",
-    )
-    .unwrap();
-    let file_in_device = cache_dir()
-        .unwrap()
-        .join("roxide/state.txt")
-        .metadata()
-        .unwrap()
-        .dev();
-    // check if the devices are different
-    if item_metadata != file_in_device {
-        return Err(Error::CrossesDevices(item));
-    }
-    Ok(())
-}
 
 fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };
