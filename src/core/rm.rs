@@ -61,16 +61,19 @@ fn check_cross_device(item: &Path) -> RoError<'_, ()> {
     let item_metadata = fs::metadata(item).unwrap().dev();
     // we need to create a file with trash name to check this
     create_dir_all(cache_dir().unwrap().join("roxide")).unwrap();
-    write(cache_dir().unwrap().join("roxide/state.txt"), "Just a file to check CrossesDevices Error.").unwrap();
-    let file_in_dev = cache_dir()
+    write(
+        cache_dir().unwrap().join("roxide/state.txt"),
+        "Just a file to check CrossesDevices Error.",
+    )
+    .unwrap();
+    let file_in_device = cache_dir()
         .unwrap()
         .join("roxide/state.txt")
         .metadata()
         .unwrap()
         .dev();
-    // let _trash_metadata = fs::metadata(trash).unwrap().dev();
     // check if the devices are different
-    if item_metadata != file_in_dev {
+    if item_metadata != file_in_device {
         return Err(Error::CrossesDevices(item));
     }
     Ok(())
@@ -89,56 +92,61 @@ fn core_remove(args: &Cli, item: &Path) {
     } else {
         trace!("is normal user");
 
-        // FIX: 2024-11-29
+        // we can't move items from an another device.
+        // only option is to copy or delete
+        // So. we will prompt for force remove
         match check_cross_device(&item_path) {
             Ok(()) => {
                 let rename_result = fs::rename(
                     &item_path,
                     trash_dir().join(trash.trash_name(trash.get_log_id().1)),
                 );
-
-                if let Err(err) = rename_result {
-                    /* if let io::ErrorKind::CrossesDevices = err.kind() {
-                        show_error!(
-                            "`{}` is located on a different device. Can't move item to trash dir.",
-                            item.display()
-                        );
-                        init_force_remove(item);
-                    } else */
-                    if let io::ErrorKind::PermissionDenied = err.kind() {
-                        show_error!(
-                            "Don't have enough permission to remove `{}`.",
-                            item.display()
-                        );
-                    } else {
-                        println!("Error: {}", err);
-                        init_force_remove(item);
+                match rename_result {
+                    Ok(_) => {
+                        if args.pattern.is_none() {
+                            verbose!(
+                                args.verbose,
+                                "Trashed {} to {}",
+                                item.display(),
+                                trash_dir()
+                                    .join(trash.trash_name(trash.get_log_id().1))
+                                    .display()
+                            );
+                            let history = History {
+                                log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
+                                metadata: TrashMeta {
+                                    file_path: item_path,
+                                    trash_path,
+                                },
+                            };
+                            History::write(history).unwrap();
+                        }
                     }
+                    Err(err) => match err.kind() {
+                        io::ErrorKind::PermissionDenied => {
+                            show_error!(
+                                "Don't have enough permission to remove `{}`.",
+                                item.display()
+                            );
+                        }
+                        io::ErrorKind::ResourceBusy => {
+                            show_error!("Resource is busy and cannot be moved: {}", item.display());
+                        }
+                        io::ErrorKind::ReadOnlyFilesystem => {
+                            show_error!("can't move. error: ReadOnly Filesystem: {}", item.display());
+                            init_force_remove(item);
+                        }
+                        _ => {
+                            println!("Error: {}", err);
+                            init_force_remove(item);
+                        }
+                    },
                 }
             }
             Err(err) => {
                 show_error!("{}", err);
                 init_force_remove(item);
             }
-        }
-
-        if args.pattern.is_none() {
-            verbose!(
-                args.verbose,
-                "Trashed {} to {}",
-                item.display(),
-                trash_dir()
-                    .join(trash.trash_name(trash.get_log_id().1))
-                    .display()
-            );
-            let history = History {
-                log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
-                metadata: TrashMeta {
-                    file_path: item_path,
-                    trash_path,
-                },
-            };
-            History::write(history).unwrap();
         }
     }
 }
