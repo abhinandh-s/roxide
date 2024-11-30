@@ -3,7 +3,7 @@ use std::path::Path;
 use chrono::{DateTime, Local};
 use log::*;
 
-use super::utils::{current_time, trash_dir};
+use super::helpers::{current_time, trash_dir};
 
 #[derive(Debug)]
 pub struct Trash<'a> {
