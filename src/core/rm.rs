@@ -133,7 +133,10 @@ fn core_remove(args: &Cli, item: &Path) {
                             show_error!("Resource is busy and cannot be moved: {}", item.display());
                         }
                         io::ErrorKind::ReadOnlyFilesystem => {
-                            show_error!("can't move. error: ReadOnly Filesystem: {}", item.display());
+                            show_error!(
+                                "can't move. error: ReadOnly Filesystem: {}",
+                                item.display()
+                            );
                             init_force_remove(item);
                         }
                         _ => {
