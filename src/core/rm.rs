@@ -13,9 +13,9 @@ use crate::{
     core::{
         error::Error,
         filter::PathFilter,
+        helpers::trash_dir,
         history::{History, LogId, TrashMeta},
         trash::Trash,
-        helpers::trash_dir,
     },
     prompt_yes, show_error, verbose,
 };
@@ -56,7 +56,6 @@ fn init_force_remove(item: &Path) {
         }
     }
 }
-
 
 fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };

@@ -1,10 +1,10 @@
-pub mod checks;
 pub mod args;
+pub mod checks;
 pub mod error;
 pub mod filter;
 pub mod gc;
+pub mod helpers;
 pub mod history;
 pub mod macros;
 pub mod rm;
 pub mod trash;
-pub mod helpers;
