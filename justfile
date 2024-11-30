@@ -31,6 +31,7 @@ install:
 
 release:
   cargo fmt --all -v 
+  cargo test
   cargo build --release
   cargo install --path .
   git tag v{{ver}}
