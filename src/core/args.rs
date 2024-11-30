@@ -77,7 +77,6 @@ pub enum InteractiveMode {
     Once,
     /// Prompt before every removal
     Always,
-    #[cfg(feature = "extra_commands")]
     /// Prompt only on write-protected files
     PromptProtected,
 }

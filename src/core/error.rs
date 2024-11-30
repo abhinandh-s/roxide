@@ -9,6 +9,7 @@ pub enum Error<'a> {
     NotADirectory(&'a Path),
     IsRoot(&'a Path),
     IsHome(&'a Path),
+    WriteProtected(&'a Path),
     // InvalidPattern(String),
     PatternNoMatch(String),
     IoError(std::io::Error),
@@ -42,6 +43,11 @@ impl fmt::Display for Error<'_> {
                 write!(f, "roxide: No files found matching the pattern `{}`.", pat)
             }
             Error::IoError(e) => write!(f, "Error: {}", e),
+            Error::WriteProtected(file) => write!(
+                f,
+                "Permission denied `{}` is write-protected",
+                file.display()
+            ),
         }
     }
 }
