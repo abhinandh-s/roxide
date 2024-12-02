@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-cargo run --features extra_commands -- "$@"
+cargo run --bin roxide --features extra_commands -- "$@"

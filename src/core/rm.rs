@@ -9,6 +9,7 @@ use std::str::FromStr;
 use log::*;
 
 use crate::core::checks::check_cross_device;
+use crate::utils::config::init_config;
 use crate::{
     core::{
         error::Error,
@@ -32,7 +33,7 @@ fn init_checks(item: &Path) -> RoError<()> {
     Ok(())
 }
 
-fn init_force_remove(item: &Path) {
+fn init_force_remove_with_prompt(item: &Path) {
     if prompt_yes!("remove it PERMANENTLY?") {
         if item.is_file() {
             if let Err(e) = fs::remove_file(item) {
@@ -52,10 +53,20 @@ fn core_remove(args: &Cli, item: &Path) {
     let item_path = current_dir().unwrap().join(item);
     let trash_path = trash_dir().join(trash.trash_name(id.1));
 
+    //  FIX: 02-12-2024
+    let config = init_config();
+
+    if let Some(check_sha256) = config.settings.check_sha256 {
+        // is true
+        if check_sha256 && trash.compute_sha256() {
+        } 
+    }
+    //  FIX: 02-12-2024
+
     if check_root() {
         trace!("is root user");
         show_error!("Can't move item to trash dir while using sudo.");
-        init_force_remove(item);
+        init_force_remove_with_prompt(item);
     } else {
         trace!("is normal user");
 
@@ -104,18 +115,18 @@ fn core_remove(args: &Cli, item: &Path) {
                                 "can't move. error: ReadOnly Filesystem: {}",
                                 item.display()
                             );
-                            init_force_remove(item);
+                            init_force_remove_with_prompt(item);
                         }
                         _ => {
                             println!("Error: {}", err);
-                            init_force_remove(item);
+                            init_force_remove_with_prompt(item);
                         }
                     },
                 }
             }
             Err(err) => {
                 show_error!("{}", err);
-                init_force_remove(item);
+                init_force_remove_with_prompt(item);
             }
         }
     }

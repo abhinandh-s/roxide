@@ -1,11 +1,12 @@
-use std::fs::write;
 use std::fs::{self, create_dir_all};
+use std::fs::write;
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use dirs::cache_dir;
 
 use super::rm::RoError;
+
 
 /// This function checks if an item is located on a different device than the trash directory.
 ///
