@@ -81,6 +81,7 @@ impl Trash<'_> {
             trash_name
         }
     }
+
     /// This function checks the hash of given file and the file in trash directory.
     ///
     /// if hash matches it will return true.

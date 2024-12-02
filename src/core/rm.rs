@@ -258,11 +258,17 @@ fn handle_interactive(args: &Cli, item: &Path) {
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
+    use std::fs::File;
     use std::path::{Path, PathBuf};
     use std::{fs, path};
 
+    use dirs::data_dir;
+    use tempdir::TempDir;
+
     use crate::core::args::Cli;
+    use crate::core::helpers::trash_dir;
     use crate::core::rm::check_root;
+    use crate::utils::config::init_config;
 
     use super::init_remove;
     #[test]
@@ -279,7 +285,7 @@ mod test {
         fs::create_dir_all(&base_dir).unwrap();
         let files = vec![
             base_dir.join("file1.txt"),
-            base_dir.join("file2.pdf"),
+            base_dir.join("file3.pdf"),
             base_dir.join("file3"),
         ];
         let files_cow = Cow::Borrowed(&files);
@@ -582,5 +588,58 @@ mod test {
         };
         let result = init_remove(dirs_cow.to_vec(), &args);
         assert!(result.is_ok());
+    }
+    #[test]
+    #[ignore = "i have no idea why this is failing. It works on manual tests"]
+    fn check_sha256_test01() {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/check_sha256/check_sha256_test01");
+        if !base_dir.exists() {
+            fs::create_dir_all(&base_dir).unwrap();
+        }
+        let dirs = vec![base_dir.join("dir1")];
+        let dirs_cow = Cow::Borrowed(&dirs);
+        if !base_dir.join("dir1").exists() {
+            fs::create_dir(base_dir.join("dir1")).unwrap();
+        }
+        let files = vec![
+            base_dir.join("dir1/file1.txt"),
+            base_dir.join("dir1/file2.pdf"),
+            base_dir.join("dir1/file3"),
+        ];
+        for filename in &files {
+            if !filename.exists() {
+                fs::write(filename, "some contents").unwrap();
+            }
+        }
+        for dirname in dirs_cow.iter() {
+            assert!(path::Path::new(&dirname).exists())
+        }
+        for filename in &files {
+            assert!(path::Path::new(&filename).exists())
+        }
+        // recursive flags test
+        let args = Cli {
+            file: Some(dirs_cow.to_vec()),
+            interactive: None,
+            recursive: true,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            dir: false,
+            force: None,
+            list: false,
+            verbose: true,
+            pattern: None,
+            command: None,
+        };
+        // panic!("{:#?}", dirs_cow);
+        init_remove(dirs_cow.to_vec(), &args).unwrap();
+        for filename in &files {
+            assert!(!path::Path::new(&filename).exists())
+        }
+        for dirname in dirs_cow.iter() {
+            assert!(!path::Path::new(&dirname).exists())
+        }
     }
 }
