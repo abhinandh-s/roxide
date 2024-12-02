@@ -74,7 +74,7 @@ fn generate_config() {
     }
     fs::write(
         config_dir.join("config.toml"),
-        "[settings]\n# user_names = ['username01']\n# backup_dir =\n# trash_dir =",
+        "[settings]\n# check_sha256 = false\n# user_names = ['username01']\n# backup_dir =\n# trash_dir =",
     )
     .unwrap();
 }

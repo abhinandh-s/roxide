@@ -47,6 +47,18 @@ fn init_force_remove_with_prompt(item: &Path) {
     }
 }
 
+fn init_force_remove_without_prompt(item: &Path) {
+    if item.is_file() {
+        if let Err(e) = fs::remove_file(item) {
+            show_error!("Failed to remove file: {}", e);
+        }
+    } else if item.is_dir() {
+        if let Err(e) = fs::remove_dir_all(item) {
+            show_error!("Failed to remove directory: {}", e);
+        }
+    }
+}
+
 fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };
     let id = trash.get_log_id();
@@ -55,12 +67,6 @@ fn core_remove(args: &Cli, item: &Path) {
 
     //  FIX: 02-12-2024
     let config = init_config();
-
-    if let Some(check_sha256) = config.settings.check_sha256 {
-        // is true
-        if check_sha256 && trash.compute_sha256() {
-        } 
-    }
     //  FIX: 02-12-2024
 
     if check_root() {
@@ -75,54 +81,71 @@ fn core_remove(args: &Cli, item: &Path) {
         // So. we will prompt for force remove
         match check_cross_device(&item_path) {
             Ok(()) => {
-                let rename_result = fs::rename(
-                    &item_path,
-                    trash_dir().join(trash.trash_name(trash.get_log_id().1)),
-                );
-                match rename_result {
-                    Ok(_) => {
-                        if args.pattern.is_none() {
-                            verbose!(
-                                args.verbose,
-                                "Trashed {} to {}",
-                                item.display(),
-                                trash_dir()
-                                    .join(trash.trash_name(trash.get_log_id().1))
-                                    .display()
-                            );
-                            let history = History {
-                                log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
-                                metadata: TrashMeta {
-                                    file_path: item_path,
-                                    trash_path,
-                                },
-                            };
-                            History::write(history).unwrap();
+                //  FIX: 02-12-2024 , havn't wrote test
+                match config.settings.check_sha256 {
+                    Some(true) if trash.compute_sha256(args) => {
+                        init_force_remove_without_prompt(&item_path);
+                        verbose!(
+                            args.verbose,
+                            "roxide: removed {} permanently",
+                            &item_path.display()
+                        );
+                    }
+                    _ => {
+                        let rename_result = fs::rename(
+                            &item_path,
+                            trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                        );
+                        match rename_result {
+                            Ok(_) => {
+                                if args.pattern.is_none() {
+                                    verbose!(
+                                        args.verbose,
+                                        "Trashed {} to {}",
+                                        item.display(),
+                                        trash_dir()
+                                            .join(trash.trash_name(trash.get_log_id().1))
+                                            .display()
+                                    );
+                                    let history = History {
+                                        log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
+                                        metadata: TrashMeta {
+                                            file_path: item_path,
+                                            trash_path,
+                                        },
+                                    };
+                                    History::write(history).unwrap();
+                                }
+                            }
+                            Err(err) => match err.kind() {
+                                io::ErrorKind::PermissionDenied => {
+                                    show_error!(
+                                        "Don't have enough permission to remove `{}`.",
+                                        item.display()
+                                    );
+                                }
+                                io::ErrorKind::ResourceBusy => {
+                                    show_error!(
+                                        "Resource is busy and cannot be moved: {}",
+                                        item.display()
+                                    );
+                                }
+                                io::ErrorKind::ReadOnlyFilesystem => {
+                                    show_error!(
+                                        "can't move. error: ReadOnly Filesystem: {}",
+                                        item.display()
+                                    );
+                                    init_force_remove_with_prompt(item);
+                                }
+                                _ => {
+                                    println!("Error: {}", err);
+                                    init_force_remove_with_prompt(item);
+                                }
+                            },
                         }
                     }
-                    Err(err) => match err.kind() {
-                        io::ErrorKind::PermissionDenied => {
-                            show_error!(
-                                "Don't have enough permission to remove `{}`.",
-                                item.display()
-                            );
-                        }
-                        io::ErrorKind::ResourceBusy => {
-                            show_error!("Resource is busy and cannot be moved: {}", item.display());
-                        }
-                        io::ErrorKind::ReadOnlyFilesystem => {
-                            show_error!(
-                                "can't move. error: ReadOnly Filesystem: {}",
-                                item.display()
-                            );
-                            init_force_remove_with_prompt(item);
-                        }
-                        _ => {
-                            println!("Error: {}", err);
-                            init_force_remove_with_prompt(item);
-                        }
-                    },
                 }
+                //  FIX: 02-12-2024
             }
             Err(err) => {
                 show_error!("{}", err);
