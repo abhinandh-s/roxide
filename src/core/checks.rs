@@ -92,7 +92,7 @@ pub fn check_root() -> bool {
 
 #[cfg(test)]
 mod test {
-    use std::fs::create_dir_all;
+    use std::fs::{create_dir_all, remove_dir_all};
     use std::path;
 
     use super::{check_cross_device, check_root};
@@ -112,6 +112,7 @@ mod test {
                 panic!("check_cross_device function failed!");
             }
         }
+        remove_dir_all("trash/tests/check_cross_device_test").unwrap();
     }
 
     #[test]

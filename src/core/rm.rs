@@ -9,6 +9,7 @@ use std::str::FromStr;
 use log::*;
 
 use crate::core::checks::check_cross_device;
+use crate::utils::config::init_config;
 use crate::{
     core::{
         error::Error,
@@ -32,7 +33,7 @@ fn init_checks(item: &Path) -> RoError<()> {
     Ok(())
 }
 
-fn init_force_remove(item: &Path) {
+fn init_force_remove_with_prompt(item: &Path) {
     if prompt_yes!("remove it PERMANENTLY?") {
         if item.is_file() {
             if let Err(e) = fs::remove_file(item) {
@@ -46,16 +47,30 @@ fn init_force_remove(item: &Path) {
     }
 }
 
+fn init_force_remove_without_prompt(item: &Path) {
+    if item.is_file() {
+        if let Err(e) = fs::remove_file(item) {
+            show_error!("Failed to remove file: {}", e);
+        }
+    } else if item.is_dir() {
+        if let Err(e) = fs::remove_dir_all(item) {
+            show_error!("Failed to remove directory: {}", e);
+        }
+    }
+}
+
 fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };
     let id = trash.get_log_id();
     let item_path = current_dir().unwrap().join(item);
     let trash_path = trash_dir().join(trash.trash_name(id.1));
 
+    let config = init_config();
+
     if check_root() {
         trace!("is root user");
         show_error!("Can't move item to trash dir while using sudo.");
-        init_force_remove(item);
+        init_force_remove_with_prompt(item);
     } else {
         trace!("is normal user");
 
@@ -63,59 +78,72 @@ fn core_remove(args: &Cli, item: &Path) {
         // only option is to copy or delete
         // So. we will prompt for force remove
         match check_cross_device(&item_path) {
-            Ok(()) => {
-                let rename_result = fs::rename(
-                    &item_path,
-                    trash_dir().join(trash.trash_name(trash.get_log_id().1)),
-                );
-                match rename_result {
-                    Ok(_) => {
-                        if args.pattern.is_none() {
-                            verbose!(
-                                args.verbose,
-                                "Trashed {} to {}",
-                                item.display(),
-                                trash_dir()
-                                    .join(trash.trash_name(trash.get_log_id().1))
-                                    .display()
-                            );
-                            let history = History {
-                                log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
-                                metadata: TrashMeta {
-                                    file_path: item_path,
-                                    trash_path,
-                                },
-                            };
-                            History::write(history).unwrap();
-                        }
-                    }
-                    Err(err) => match err.kind() {
-                        io::ErrorKind::PermissionDenied => {
-                            show_error!(
-                                "Don't have enough permission to remove `{}`.",
-                                item.display()
-                            );
-                        }
-                        io::ErrorKind::ResourceBusy => {
-                            show_error!("Resource is busy and cannot be moved: {}", item.display());
-                        }
-                        io::ErrorKind::ReadOnlyFilesystem => {
-                            show_error!(
-                                "can't move. error: ReadOnly Filesystem: {}",
-                                item.display()
-                            );
-                            init_force_remove(item);
-                        }
-                        _ => {
-                            println!("Error: {}", err);
-                            init_force_remove(item);
-                        }
-                    },
+            Ok(()) => match config.settings.check_sha256 {
+                Some(true) if trash.compute_sha256(args) && item.is_file() => {
+                    init_force_remove_without_prompt(&item_path);
+                    verbose!(
+                        args.verbose,
+                        "roxide: removed {} permanently",
+                        &item_path.display()
+                    );
                 }
-            }
+                _ => {
+                    let rename_result = fs::rename(
+                        &item_path,
+                        trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                    );
+                    match rename_result {
+                        Ok(_) => {
+                            if args.pattern.is_none() {
+                                verbose!(
+                                    args.verbose,
+                                    "Trashed {} to {}",
+                                    item.display(),
+                                    trash_dir()
+                                        .join(trash.trash_name(trash.get_log_id().1))
+                                        .display()
+                                );
+                                let history = History {
+                                    log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
+                                    metadata: TrashMeta {
+                                        file_path: item_path,
+                                        trash_path,
+                                    },
+                                };
+                                History::write(history).unwrap();
+                            }
+                        }
+                        Err(err) => match err.kind() {
+                            io::ErrorKind::PermissionDenied => {
+                                show_error!(
+                                    "Don't have enough permission to remove `{}`.",
+                                    item.display()
+                                );
+                            }
+                            io::ErrorKind::ResourceBusy => {
+                                show_error!(
+                                    "Resource is busy and cannot be moved: {}",
+                                    item.display()
+                                );
+                            }
+                            io::ErrorKind::ReadOnlyFilesystem => {
+                                show_error!(
+                                    "can't move. error: ReadOnly Filesystem: {}",
+                                    item.display()
+                                );
+                                init_force_remove_with_prompt(item);
+                            }
+                            _ => {
+                                println!("Error: {}", err);
+                                init_force_remove_with_prompt(item);
+                            }
+                        },
+                    }
+                }
+            },
             Err(err) => {
                 show_error!("{}", err);
-                init_force_remove(item);
+                init_force_remove_with_prompt(item);
             }
         }
     }
@@ -224,36 +252,115 @@ fn handle_interactive(args: &Cli, item: &Path) {
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
+    use std::fs::{remove_dir_all, File};
     use std::path::{Path, PathBuf};
+    use std::thread::sleep;
+    use std::time::Duration;
     use std::{fs, path};
 
+    use dirs::data_dir;
+    use tempdir::TempDir;
+
     use crate::core::args::Cli;
+    use crate::core::helpers::trash_dir;
     use crate::core::rm::check_root;
+    use crate::utils::config::init_config;
 
     use super::init_remove;
+
+    /// will create a empty dir2 and a dir1 with 3 files
+    fn make_dirs_for_test(basedir_name: &Path) -> (Vec<PathBuf>, Vec<PathBuf>) {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests")
+            .join(basedir_name);
+        if !base_dir.exists() {
+            fs::create_dir_all(&base_dir).unwrap();
+        }
+        let dirs = vec![base_dir.join("dir1"), base_dir.join("dir2")];
+        let dirs_cow = Cow::Borrowed(&dirs);
+        for dirs in dirs_cow.iter() {
+            if !base_dir.join(dirs).exists() {
+                fs::create_dir(base_dir.join(dirs)).unwrap();
+            }
+        }
+        let files = vec![
+            base_dir.join("dir1/file1.txt"),
+            base_dir.join("dir1/file2.pdf"),
+            base_dir.join("dir1/file3"),
+        ];
+        let files_cow = Cow::Borrowed(&files);
+        for filename in files_cow.iter() {
+            if !filename.exists() {
+                fs::write(filename, "some contents").unwrap();
+            }
+        }
+        for dirname in dirs_cow.iter() {
+            assert!(path::Path::new(&dirname).exists())
+        }
+        for filename in &files {
+            assert!(path::Path::new(&filename).exists())
+        }
+        (dirs_cow.to_vec(), files_cow.to_vec())
+    }
+    fn remove_test_dir(basedir_name: &Path) {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests")
+            .join(basedir_name);
+        remove_dir_all(&base_dir).unwrap();
+        assert!(!path::Path::new(&base_dir).exists())
+    }
+
     #[test]
     fn test_check_root() {
         // This test assumes a non-root environment.
         let is_root = check_root();
         assert!(!is_root);
     }
-    #[test]
-    fn revome_files_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/revome_files_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let files = vec![
-            base_dir.join("file1.txt"),
-            base_dir.join("file2.pdf"),
-            base_dir.join("file3"),
-        ];
-        let files_cow = Cow::Borrowed(&files);
-        for filename in files_cow.iter() {
-            fs::write(filename, "some contents").unwrap();
-        }
 
-        // no flags test
+    #[test]
+    // #[ignore = "i have no idea why this is failing. It works on manual tests"]
+    fn check_sha256_01() {
+        let items = make_dirs_for_test(Path::new("check_sha256_01"));
+        let dirs = items.0;
+        let files = items.1;
+        let _files_cow = Cow::Borrowed(&files);
+        let dirs_cow = Cow::Borrowed(&dirs);
+
+        let args = Cli {
+            file: Some(dirs_cow.to_vec()),
+            interactive: None,
+            recursive: true,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            dir: false,
+            force: None,
+            list: false,
+            verbose: true,
+            pattern: None,
+            command: None,
+        };
+        // panic!("{:#?}", dirs_cow);
+        sleep(Duration::from_secs(1));
+        init_remove(dirs_cow.to_vec(), &args).unwrap();
+        for filename in &files {
+            assert!(!path::Path::new(&filename).exists())
+        }
+        for dirname in dirs_cow.iter() {
+            assert!(!path::Path::new(&dirname).exists())
+        }
+        remove_test_dir(Path::new("check_sha256_01"));
+    }
+
+    /// no flag test
+    /// only files as input no dirs
+    #[test]
+    fn revome_files_only_01() {
+        let items = make_dirs_for_test(Path::new("revome_files_only_01"));
+        let _dirs = items.0;
+        let files = items.1;
+
         let args = Cli {
             file: Some(files.to_vec()),
             interactive: None,
@@ -268,28 +375,22 @@ mod test {
             dir: false,
         };
 
-        init_remove(files_cow.to_vec(), &args).unwrap();
+        sleep(Duration::from_secs(1));
+        init_remove(files.clone(), &args).unwrap();
         for filename in &files {
             assert!(!path::Path::new(&filename).exists())
         }
+        remove_test_dir(Path::new("revome_files_only_01"));
     }
+    /// recursive flags test
+    /// revome_dirs_in_some_dir_from_root
     #[test]
-    fn revome_dirs_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/revome_dirs_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+    fn recursive_remove_01() {
+        let items = make_dirs_for_test(Path::new("recursive_remove_01"));
+        let dirs = items.0;
+        let files = items.1;
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs_cow.iter() {
-            fs::create_dir(dirnames).unwrap();
-        }
 
-        // recursive flags test
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
             interactive: None,
@@ -304,30 +405,20 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
-        for filename in &dirs {
+
+        for filename in files {
             assert!(!path::Path::new(&filename).exists())
         }
+        // remove_test_dir(Path::new("recursive_remove_01"));
     }
     #[test]
-    fn force_revome_dirs_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/force_revome_dirs_in_some_dir_from_root");
-        if !base_dir.exists() {
-            fs::create_dir_all(&base_dir).unwrap();
-        }
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+    fn force_revome_dirs() {
+        let items = make_dirs_for_test(Path::new("force_revome_dirs"));
+        let dirs = items.0;
+        let _files = items.1;
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs.iter() {
-            if !dirnames.exists() {
-                fs::create_dir(dirnames).unwrap();
-            }
-        }
 
         // force flags test
         let args = Cli {
@@ -360,24 +451,15 @@ mod test {
         for filename in &dirs {
             assert!(!path::Path::new(&filename).exists())
         }
+        remove_test_dir(Path::new("force_revome_dirs"));
     }
     #[test]
-    fn list_files_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/list_files_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let files = vec![
-            base_dir.join("file1.txt"),
-            base_dir.join("file2.pdf"),
-            base_dir.join("file3"),
-        ];
+    fn list_files_flag() {
+        let items = make_dirs_for_test(Path::new("list_files_flag"));
+        let dirs = items.0;
+        let files = items.1;
         let files_cow = Cow::Borrowed(&files);
-        for filename in files_cow.iter() {
-            fs::write(filename, "some contents").unwrap();
-        }
 
-        // recursive flags test
         let args = Cli {
             file: Some(files_cow.to_vec()),
             interactive: None,
@@ -392,28 +474,22 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(files_cow.to_vec(), &args).unwrap();
         for filename in &files {
             assert!(path::Path::new(&filename).exists())
         }
+        for dirname in &dirs {
+            assert!(path::Path::new(&dirname).exists())
+        }
+        remove_test_dir(Path::new("list_files_flag"));
     }
     #[test]
-    fn pattern_files_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/pattern_files_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let files = vec![
-            base_dir.join("file1.txt"),
-            base_dir.join("file2.pdf"),
-            base_dir.join("file3"),
-        ];
+    fn pattern_flag() {
+        let items = make_dirs_for_test(Path::new("pattern_flag"));
+        let _dirs = items.0;
+        let files = items.1;
         let files_cow = Cow::Borrowed(&files);
-        for filename in files.iter() {
-            if !filename.exists() {
-                fs::write(filename, "some contents").unwrap();
-            }
-        }
 
         // no flags test
         let args = Cli {
@@ -430,27 +506,21 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(files_cow.to_vec(), &args).unwrap();
-        assert!(!path::Path::new(&base_dir.join("file1.txt")).exists());
-        assert!(path::Path::new(&base_dir.join("file2.pdf")).exists());
-        assert!(path::Path::new(&base_dir.join("file3")).exists());
+        let f = files.clone();
+        assert!(!path::Path::new(&f[0]).exists()); // this one matches the pattern
+        assert!(path::Path::new(&f[1]).exists());
+        assert!(path::Path::new(&f[2]).exists());
+        remove_test_dir(Path::new("pattern_flag"));
     }
     #[test]
-    fn dir_flag_test_001() {
-        // propper test empty directory will not fail
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/dir_flag_test_001");
-        fs::create_dir_all(&base_dir).unwrap();
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+    fn dir_flag_01() {
+        let items = make_dirs_for_test(Path::new("dir_flag_01"));
+        let dirs = items.0;
+        let files = items.1;
+        let _files_cow = Cow::Borrowed(&files);
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs_cow.iter() {
-            fs::create_dir(dirnames).unwrap();
-        }
 
         // recursive flags test
         let args = Cli {
@@ -467,40 +537,23 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
-        for filename in &dirs {
-            assert!(!path::Path::new(&filename).exists())
-        }
+
+        let d = dirs.clone();
+        assert!(path::Path::new(&d[0]).exists());
+        assert!(!path::Path::new(&d[1]).exists()); // this one is the empty one
+        remove_test_dir(Path::new("dir_flag_01"));
     }
     #[test]
-    fn dir_flag_test_002() {
+    fn dir_flag_02() {
         // -> Not an empty directory Error
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/dir_flag_test_002");
-        fs::create_dir_all(&base_dir).unwrap();
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+        let items = make_dirs_for_test(Path::new("dir_flag_02"));
+        let dirs = items.0;
+        let files = items.1;
+        let _files_cow = Cow::Borrowed(&files);
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs_cow.iter() {
-            if !dirnames.exists() {
-                fs::create_dir(dirnames).unwrap();
-            }
-        }
-        let files = vec![
-            base_dir.join("dir1/file1.txt"),
-            base_dir.join("dir2/file2.pdf"),
-            base_dir.join("dir3/file3"),
-        ];
-        for filename in &files {
-            if !filename.exists() {
-                fs::write(filename, "some contents").unwrap();
-            }
-        }
-        // recursive flags test
+
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
             interactive: None,
@@ -514,25 +567,24 @@ mod test {
             pattern: None,
             command: None,
         };
+
+        sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
-        for filename in &dirs {
-            assert!(path::Path::new(&filename).exists())
-        }
+
+        let d = dirs.clone();
+        assert!(path::Path::new(&d[0]).exists());
+        assert!(!path::Path::new(&d[1]).exists()); // this one is the empty one
+        remove_test_dir(Path::new("dir_flag_02"));
     }
     #[test]
-    fn dir_flag_test_003() {
+    fn dir_flag_03() {
         // -> Not an empty directory Error
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/dir_flag_test_003");
-        fs::create_dir_all(&base_dir).unwrap();
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
-        let dirs_cow: Cow<Vec<PathBuf>> = Cow::Borrowed(&dirs);
-        // recursive flags test
+        let items = make_dirs_for_test(Path::new("dir_flag_03"));
+        let dirs = items.0;
+        let files = items.1;
+        let _files_cow = Cow::Borrowed(&files);
+        let dirs_cow = Cow::Borrowed(&dirs);
+
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
             interactive: None,
@@ -546,7 +598,12 @@ mod test {
             pattern: None,
             command: None,
         };
+        sleep(Duration::from_secs(1));
         let result = init_remove(dirs_cow.to_vec(), &args);
         assert!(result.is_ok());
+        let d = dirs.clone();
+        assert!(path::Path::new(&d[0]).exists());
+        assert!(!path::Path::new(&d[1]).exists()); // this one is the empty one
+        remove_test_dir(Path::new("dir_flag_03"));
     }
 }
