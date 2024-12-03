@@ -1,8 +1,13 @@
-use std::path::Path;
-
 use chrono::{DateTime, Local};
 use log::*;
+use sha2::{Digest, Sha256};
+use std::fs::File;
+use std::io;
+use std::path::Path;
 
+use crate::verbose;
+
+use super::args::Cli;
 use super::helpers::{current_time, trash_dir};
 
 #[derive(Debug)]
@@ -75,5 +80,48 @@ impl Trash<'_> {
             );
             trash_name
         }
+    }
+
+    /// This function checks the hash of given file and the file in trash directory.
+    ///
+    /// if hash matches it will return true.
+    pub fn compute_sha256(&self, args: &Cli) -> bool {
+        if self.file.is_file() {
+            let mut file = File::open(self.file).unwrap();
+            let trash_file = trash_dir().join(self.file.file_name().unwrap());
+            if trash_file.exists() {
+                let mut trash_file = File::open(trash_file).unwrap();
+
+                let mut hasher = Sha256::new();
+                let mut hasher2 = Sha256::new();
+
+                io::copy(&mut file, &mut hasher).unwrap();
+                io::copy(&mut trash_file, &mut hasher2).unwrap();
+
+                let hash = hasher.finalize();
+                let hash2 = hasher2.finalize();
+
+                verbose!(
+                    args.verbose,
+                    "hash of given file and a file in Trash directory matched"
+                );
+                verbose!(
+                    args.verbose,
+                    "hash of given {} is: {:x}",
+                    self.file.file_name().unwrap().to_string_lossy(),
+                    hash
+                );
+                verbose!(
+                    args.verbose,
+                    "hash of {} in Trash is: {:x}",
+                    self.file.file_name().unwrap().to_string_lossy(),
+                    hash2
+                );
+                if hash == hash2 {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }

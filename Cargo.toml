@@ -1,6 +1,6 @@
 [package]
 name = "roxide"
-version = "0.2.17"
+version = "0.2.18"
 license = "MIT"
 authors = ["Abhinandh S <abhinandhsuby@proton.me>"]
 categories = ["command-line-utilities", "filesystem"]
@@ -14,24 +14,38 @@ edition = "2021"
 [badges]
 maintenance = { status = "actively-developed" }
 
+# [[bin]]
+# bench = false
+# path = "src/main.rs"
+# name = "roxide"
+
+# [[bin]]
+# bench = false
+# path = "src/main.rs"
+# name = "r"
+
 [features]
 default = []
 extra_commands = []
 extra_errors = []
+dev = []
 
 [dependencies]
 chrono = "0.4.38"
 clap = { version = "4.5.20", features = ["derive"] }
 dirs = "5.0.1"
 env_logger = "0.11.5"
+cfg-if = { git = "https://github.com/rust-lang/cfg-if/" }
 glob = "0.3.1"
 log = "0.4.22"
 serde = { version = "1.0.215", features = ["derive"] }
 toml = "0.8.19"
 walkdir = "2.5.0"
+sha2 = "0.10.8"
 
 [dev-dependencies]
 anyhow = "1.0.93"
+tempdir = "0.3.7"
 pretty_assertions = "1.4.1"
 
 [profile.release]
@@ -39,3 +53,7 @@ panic = 'abort'
 codegen-units = 1
 opt-level = 'z'
 lto = true
+debug = "none"
+strip = "symbols"
+debug-assertions = false
+overflow-checks = false

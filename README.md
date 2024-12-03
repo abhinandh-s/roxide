@@ -8,20 +8,20 @@
 
 ## Getting started
 
-- `roxide file.txt`: files will moved to `trash dir`. ie, $HOME/.local/share/Trash/files/
-- `roxide revert` : restores perviously removed file/directory to its pervious path 
-- `roxide -r | --recursive` : Remove directories and their contents recursively
-- `roxide -f | --force` : Remove without moving to trash directory
-- `roxide -d | --dir` : Removes empty directories
-- `roxide -v | --verbose` : will print the file name and its out path
-- `roxide some/dir/ -p .pdf`: will remove files matching the pattern from some/dir
-- `roxide some/dir/ -rp .pdf`: will recursively remove files matching the pattern from some/dir
-- `roxide some/dir/ -rp .pdf -l`: will list files, like dry run
-- `roxide some/* -i never`: will never prompt
-- `roxide some/* -i once`: Prompt once before removing more than three files or when removing recursivly
-- `roxide some/* -i always`: Prompt before every removal
-- `roxide some/* -p .pdf -i always`: Prompt before every removal
-- `sudo roxide`: will delete files/directories permanently
+- `r file.txt`: files will moved to `trash dir`. ie, $HOME/.local/share/Trash/files/
+- `r revert` : restores perviously removed file/directory to its pervious path 
+- `r -r | --recursive` : Remove directories and their contents recursively
+- `r -f | --force` : Remove without moving to trash directory
+- `r -d | --dir` : Removes empty directories
+- `r -v | --verbose` : will print the file name and its out path
+- `r some/dir/ -p .pdf`: will remove files matching the pattern from some/dir
+- `r some/dir/ -rp .pdf`: will recursively remove files matching the pattern from some/dir
+- `r some/dir/ -rp .pdf -l`: will list files, like dry run
+- `r some/* -i never`: will never prompt
+- `r some/* -i once`: Prompt once before removing more than three files or when removing recursivly
+- `r some/* -i always`: Prompt before every removal
+- `r some/* -p .pdf -i always`: Prompt before every removal
+- `sudo r`: will delete files/directories permanently
 
 > [!WARNING]
 > 2. It wont warn about write protected contents (wip)
