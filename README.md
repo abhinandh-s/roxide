@@ -27,6 +27,12 @@
 > 2. It wont warn about write protected contents (wip)
 > 3. It is not possible to bring back files removed using patterns with `revert` flag but you can still access it from Trash dir
 
+config file config.toml
+```toml
+[settings]
+check_sha256 = true # checks the hash of given file and the file in trash directory, permanently deletes file if hash matches.
+```
+
 ## Installation
 
 ### Build
