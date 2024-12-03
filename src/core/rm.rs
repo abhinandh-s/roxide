@@ -65,9 +65,7 @@ fn core_remove(args: &Cli, item: &Path) {
     let item_path = current_dir().unwrap().join(item);
     let trash_path = trash_dir().join(trash.trash_name(id.1));
 
-    //  FIX: 02-12-2024
     let config = init_config();
-    //  FIX: 02-12-2024
 
     if check_root() {
         trace!("is root user");
@@ -80,73 +78,69 @@ fn core_remove(args: &Cli, item: &Path) {
         // only option is to copy or delete
         // So. we will prompt for force remove
         match check_cross_device(&item_path) {
-            Ok(()) => {
-                //  FIX: 02-12-2024 , havn't wrote test
-                match config.settings.check_sha256 {
-                    Some(true) if trash.compute_sha256(args) && item.is_file() => {
-                        init_force_remove_without_prompt(&item_path);
-                        verbose!(
-                            args.verbose,
-                            "roxide: removed {} permanently",
-                            &item_path.display()
-                        );
-                    }
-                    _ => {
-                        let rename_result = fs::rename(
-                            &item_path,
-                            trash_dir().join(trash.trash_name(trash.get_log_id().1)),
-                        );
-                        match rename_result {
-                            Ok(_) => {
-                                if args.pattern.is_none() {
-                                    verbose!(
-                                        args.verbose,
-                                        "Trashed {} to {}",
-                                        item.display(),
-                                        trash_dir()
-                                            .join(trash.trash_name(trash.get_log_id().1))
-                                            .display()
-                                    );
-                                    let history = History {
-                                        log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
-                                        metadata: TrashMeta {
-                                            file_path: item_path,
-                                            trash_path,
-                                        },
-                                    };
-                                    History::write(history).unwrap();
-                                }
+            Ok(()) => match config.settings.check_sha256 {
+                Some(true) if trash.compute_sha256(args) && item.is_file() => {
+                    init_force_remove_without_prompt(&item_path);
+                    verbose!(
+                        args.verbose,
+                        "roxide: removed {} permanently",
+                        &item_path.display()
+                    );
+                }
+                _ => {
+                    let rename_result = fs::rename(
+                        &item_path,
+                        trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                    );
+                    match rename_result {
+                        Ok(_) => {
+                            if args.pattern.is_none() {
+                                verbose!(
+                                    args.verbose,
+                                    "Trashed {} to {}",
+                                    item.display(),
+                                    trash_dir()
+                                        .join(trash.trash_name(trash.get_log_id().1))
+                                        .display()
+                                );
+                                let history = History {
+                                    log_id: LogId::from_str(id.0.to_string().as_str()).unwrap(),
+                                    metadata: TrashMeta {
+                                        file_path: item_path,
+                                        trash_path,
+                                    },
+                                };
+                                History::write(history).unwrap();
                             }
-                            Err(err) => match err.kind() {
-                                io::ErrorKind::PermissionDenied => {
-                                    show_error!(
-                                        "Don't have enough permission to remove `{}`.",
-                                        item.display()
-                                    );
-                                }
-                                io::ErrorKind::ResourceBusy => {
-                                    show_error!(
-                                        "Resource is busy and cannot be moved: {}",
-                                        item.display()
-                                    );
-                                }
-                                io::ErrorKind::ReadOnlyFilesystem => {
-                                    show_error!(
-                                        "can't move. error: ReadOnly Filesystem: {}",
-                                        item.display()
-                                    );
-                                    init_force_remove_with_prompt(item);
-                                }
-                                _ => {
-                                    println!("Error: {}", err);
-                                    init_force_remove_with_prompt(item);
-                                }
-                            },
                         }
+                        Err(err) => match err.kind() {
+                            io::ErrorKind::PermissionDenied => {
+                                show_error!(
+                                    "Don't have enough permission to remove `{}`.",
+                                    item.display()
+                                );
+                            }
+                            io::ErrorKind::ResourceBusy => {
+                                show_error!(
+                                    "Resource is busy and cannot be moved: {}",
+                                    item.display()
+                                );
+                            }
+                            io::ErrorKind::ReadOnlyFilesystem => {
+                                show_error!(
+                                    "can't move. error: ReadOnly Filesystem: {}",
+                                    item.display()
+                                );
+                                init_force_remove_with_prompt(item);
+                            }
+                            _ => {
+                                println!("Error: {}", err);
+                                init_force_remove_with_prompt(item);
+                            }
+                        },
                     }
                 }
-                //  FIX: 02-12-2024
-            }
+            },
             Err(err) => {
                 show_error!("{}", err);
                 init_force_remove_with_prompt(item);
@@ -348,6 +342,7 @@ mod test {
             command: None,
         };
         // panic!("{:#?}", dirs_cow);
+        sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
         for filename in &files {
             assert!(!path::Path::new(&filename).exists())
@@ -380,6 +375,7 @@ mod test {
             dir: false,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(files.clone(), &args).unwrap();
         for filename in &files {
             assert!(!path::Path::new(&filename).exists())
@@ -412,9 +408,9 @@ mod test {
         sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
 
-       for filename in files {
+        for filename in files {
             assert!(!path::Path::new(&filename).exists())
-       }
+        }
         // remove_test_dir(Path::new("recursive_remove_01"));
     }
     #[test]
@@ -478,6 +474,7 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(files_cow.to_vec(), &args).unwrap();
         for filename in &files {
             assert!(path::Path::new(&filename).exists())
@@ -509,6 +506,7 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(files_cow.to_vec(), &args).unwrap();
         let f = files.clone();
         assert!(!path::Path::new(&f[0]).exists()); // this one matches the pattern
@@ -539,6 +537,7 @@ mod test {
             command: None,
         };
 
+        sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
 
         let d = dirs.clone();
@@ -554,7 +553,7 @@ mod test {
         let files = items.1;
         let _files_cow = Cow::Borrowed(&files);
         let dirs_cow = Cow::Borrowed(&dirs);
-        
+
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
             interactive: None,
@@ -568,8 +567,10 @@ mod test {
             pattern: None,
             command: None,
         };
+
+        sleep(Duration::from_secs(1));
         init_remove(dirs_cow.to_vec(), &args).unwrap();
-        
+
         let d = dirs.clone();
         assert!(path::Path::new(&d[0]).exists());
         assert!(!path::Path::new(&d[1]).exists()); // this one is the empty one
@@ -597,6 +598,7 @@ mod test {
             pattern: None,
             command: None,
         };
+        sleep(Duration::from_secs(1));
         let result = init_remove(dirs_cow.to_vec(), &args);
         assert!(result.is_ok());
         let d = dirs.clone();
@@ -604,5 +606,4 @@ mod test {
         assert!(!path::Path::new(&d[1]).exists()); // this one is the empty one
         remove_test_dir(Path::new("dir_flag_03"));
     }
-
 }
