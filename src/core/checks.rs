@@ -1,12 +1,11 @@
-use std::fs::{self, create_dir_all};
 use std::fs::write;
+use std::fs::{self, create_dir_all};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use dirs::cache_dir;
 
 use super::rm::RoError;
-
 
 /// This function checks if an item is located on a different device than the trash directory.
 ///
@@ -93,7 +92,7 @@ pub fn check_root() -> bool {
 
 #[cfg(test)]
 mod test {
-    use std::fs::create_dir_all;
+    use std::fs::{create_dir_all, remove_dir_all};
     use std::path;
 
     use super::{check_cross_device, check_root};
@@ -113,6 +112,7 @@ mod test {
                 panic!("check_cross_device function failed!");
             }
         }
+        remove_dir_all("trash/tests/check_cross_device_test").unwrap();
     }
 
     #[test]

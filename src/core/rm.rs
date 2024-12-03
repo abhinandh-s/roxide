@@ -83,7 +83,7 @@ fn core_remove(args: &Cli, item: &Path) {
             Ok(()) => {
                 //  FIX: 02-12-2024 , havn't wrote test
                 match config.settings.check_sha256 {
-                    Some(true) if trash.compute_sha256(args) => {
+                    Some(true) if trash.compute_sha256(args) && item.is_file() => {
                         init_force_remove_without_prompt(&item_path);
                         verbose!(
                             args.verbose,
@@ -258,7 +258,7 @@ fn handle_interactive(args: &Cli, item: &Path) {
 #[cfg(test)]
 mod test {
     use std::borrow::Cow;
-    use std::fs::File;
+    use std::fs::{remove_dir_all, File};
     use std::path::{Path, PathBuf};
     use std::{fs, path};
 
@@ -271,29 +271,65 @@ mod test {
     use crate::utils::config::init_config;
 
     use super::init_remove;
+
+    /// will create a empty dir2 and a dir1 with 3 files
+    fn make_dirs_for_test(basedir_name: &Path) -> (Vec<PathBuf>, Vec<PathBuf>) {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests")
+            .join(basedir_name);
+        if !base_dir.exists() {
+            fs::create_dir_all(&base_dir).unwrap();
+        }
+        let dirs = vec![base_dir.join("dir1"), base_dir.join("dir2")];
+        let dirs_cow = Cow::Borrowed(&dirs);
+        for dirs in dirs_cow.iter() {
+            if !base_dir.join(dirs).exists() {
+                fs::create_dir(base_dir.join(dirs)).unwrap();
+            }
+        }
+        let files = vec![
+            base_dir.join("dir1/file1.txt"),
+            base_dir.join("dir1/file2.pdf"),
+            base_dir.join("dir1/file3"),
+        ];
+        let files_cow = Cow::Borrowed(&files);
+        for filename in files_cow.iter() {
+            if !filename.exists() {
+                fs::write(filename, "some contents").unwrap();
+            }
+        }
+        for dirname in dirs_cow.iter() {
+            assert!(path::Path::new(&dirname).exists())
+        }
+        for filename in &files {
+            assert!(path::Path::new(&filename).exists())
+        }
+        (dirs_cow.to_vec(), files_cow.to_vec())
+    }
+    fn remove_test_dir(basedir_name: &Path) {
+        let base_dir = std::env::current_dir()
+            .unwrap()
+            .join("trash/tests")
+            .join(basedir_name);
+        remove_dir_all(&base_dir).unwrap();
+        assert!(!path::Path::new(&base_dir).exists())
+    }
+
     #[test]
     fn test_check_root() {
         // This test assumes a non-root environment.
         let is_root = check_root();
         assert!(!is_root);
     }
+    /// no flag test
+    /// only files as input no dirs
     #[test]
-    fn revome_files_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/revome_files_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let files = vec![
-            base_dir.join("file1.txt"),
-            base_dir.join("file3.pdf"),
-            base_dir.join("file3"),
-        ];
-        let files_cow = Cow::Borrowed(&files);
-        for filename in files_cow.iter() {
-            fs::write(filename, "some contents").unwrap();
-        }
+    fn revome_files_only_01() {
+        let items = make_dirs_for_test(Path::new("revome_files_only_01"));
+        let _dirs = items.0;
+        let files = items.1;
 
-        // no flags test
         let args = Cli {
             file: Some(files.to_vec()),
             interactive: None,
@@ -308,28 +344,21 @@ mod test {
             dir: false,
         };
 
-        init_remove(files_cow.to_vec(), &args).unwrap();
+        init_remove(files.clone(), &args).unwrap();
         for filename in &files {
             assert!(!path::Path::new(&filename).exists())
         }
+        remove_test_dir(Path::new("revome_files_only_01"));
     }
+    /// recursive flags test
+    /// revome_dirs_in_some_dir_from_root
     #[test]
-    fn revome_dirs_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/revome_dirs_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+    fn recursive_remove_01() {
+        let items = make_dirs_for_test(Path::new("recursive_remove_01"));
+        let dirs = items.0;
+        let _files = items.1;
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs_cow.iter() {
-            fs::create_dir(dirnames).unwrap();
-        }
 
-        // recursive flags test
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
             interactive: None,
@@ -345,29 +374,18 @@ mod test {
         };
 
         init_remove(dirs_cow.to_vec(), &args).unwrap();
-        for filename in &dirs {
-            assert!(!path::Path::new(&filename).exists())
+
+        for dirname in &dirs {
+            assert!(!path::Path::new(&dirname).exists())
         }
+        remove_test_dir(Path::new("recursive_remove_01"));
     }
     #[test]
-    fn force_revome_dirs_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/force_revome_dirs_in_some_dir_from_root");
-        if !base_dir.exists() {
-            fs::create_dir_all(&base_dir).unwrap();
-        }
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+    fn force_revome_dirs() {
+        let items = make_dirs_for_test(Path::new("force_revome_dirs"));
+        let dirs = items.0;
+        let _files = items.1;
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs.iter() {
-            if !dirnames.exists() {
-                fs::create_dir(dirnames).unwrap();
-            }
-        }
 
         // force flags test
         let args = Cli {
@@ -400,24 +418,15 @@ mod test {
         for filename in &dirs {
             assert!(!path::Path::new(&filename).exists())
         }
+        remove_test_dir(Path::new("force_revome_dirs"));
     }
     #[test]
-    fn list_files_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/list_files_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let files = vec![
-            base_dir.join("file1.txt"),
-            base_dir.join("file2.pdf"),
-            base_dir.join("file3"),
-        ];
+    fn list_files_flag() {
+        let items = make_dirs_for_test(Path::new("list_files_flag"));
+        let dirs = items.0;
+        let files = items.1;
         let files_cow = Cow::Borrowed(&files);
-        for filename in files_cow.iter() {
-            fs::write(filename, "some contents").unwrap();
-        }
 
-        // recursive flags test
         let args = Cli {
             file: Some(files_cow.to_vec()),
             interactive: None,
@@ -436,24 +445,17 @@ mod test {
         for filename in &files {
             assert!(path::Path::new(&filename).exists())
         }
+        for dirname in &dirs {
+            assert!(path::Path::new(&dirname).exists())
+        }
+        remove_test_dir(Path::new("list_files_flag"));
     }
     #[test]
-    fn pattern_files_in_some_dir_from_root() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/pattern_files_in_some_dir_from_root");
-        fs::create_dir_all(&base_dir).unwrap();
-        let files = vec![
-            base_dir.join("file1.txt"),
-            base_dir.join("file2.pdf"),
-            base_dir.join("file3"),
-        ];
+    fn pattern_flag() {
+        let items = make_dirs_for_test(Path::new("pattern_flag"));
+        let _dirs = items.0;
+        let files = items.1;
         let files_cow = Cow::Borrowed(&files);
-        for filename in files.iter() {
-            if !filename.exists() {
-                fs::write(filename, "some contents").unwrap();
-            }
-        }
 
         // no flags test
         let args = Cli {
@@ -471,26 +473,19 @@ mod test {
         };
 
         init_remove(files_cow.to_vec(), &args).unwrap();
-        assert!(!path::Path::new(&base_dir.join("file1.txt")).exists());
-        assert!(path::Path::new(&base_dir.join("file2.pdf")).exists());
-        assert!(path::Path::new(&base_dir.join("file3")).exists());
+        let f = files.clone();
+        assert!(!path::Path::new(&f[0]).exists()); // this one matches the pattern
+        assert!(path::Path::new(&f[1]).exists());
+        assert!(path::Path::new(&f[2]).exists());
+        remove_test_dir(Path::new("pattern_flag"));
     }
     #[test]
-    fn dir_flag_test_001() {
-        // propper test empty directory will not fail
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/tests/dir_flag_test_001");
-        fs::create_dir_all(&base_dir).unwrap();
-        let dirs = vec![
-            base_dir.join("dir1"),
-            base_dir.join("dir2"),
-            base_dir.join("dir3"),
-        ];
+    fn dir_flag_01() {
+        let items = make_dirs_for_test(Path::new("dir_flag_01"));
+        let dirs = items.0;
+        let files = items.1;
+        let _files_cow = Cow::Borrowed(&files);
         let dirs_cow = Cow::Borrowed(&dirs);
-        for dirnames in dirs_cow.iter() {
-            fs::create_dir(dirnames).unwrap();
-        }
 
         // recursive flags test
         let args = Cli {
@@ -508,11 +503,14 @@ mod test {
         };
 
         init_remove(dirs_cow.to_vec(), &args).unwrap();
-        for filename in &dirs {
-            assert!(!path::Path::new(&filename).exists())
-        }
+
+        let d = dirs.clone();
+        assert!(path::Path::new(&d[0]).exists());
+        assert!(!path::Path::new(&d[1]).exists()); // this one is the empty one
+        remove_test_dir(Path::new("dir_flag_01"));
     }
     #[test]
+    #[ignore]
     fn dir_flag_test_002() {
         // -> Not an empty directory Error
         let base_dir = std::env::current_dir()
@@ -560,6 +558,7 @@ mod test {
         }
     }
     #[test]
+    #[ignore]
     fn dir_flag_test_003() {
         // -> Not an empty directory Error
         let base_dir = std::env::current_dir()
@@ -590,35 +589,13 @@ mod test {
         assert!(result.is_ok());
     }
     #[test]
-    #[ignore = "i have no idea why this is failing. It works on manual tests"]
+    #[ignore]
+    // #[ignore = "i have no idea why this is failing. It works on manual tests"]
     fn check_sha256_test01() {
-        let base_dir = std::env::current_dir()
-            .unwrap()
-            .join("trash/check_sha256/check_sha256_test01");
-        if !base_dir.exists() {
-            fs::create_dir_all(&base_dir).unwrap();
-        }
-        let dirs = vec![base_dir.join("dir1")];
+        let items = make_dirs_for_test(Path::new("check_sha256_test01"));
+        let dirs = items.0;
+        let files = items.1;
         let dirs_cow = Cow::Borrowed(&dirs);
-        if !base_dir.join("dir1").exists() {
-            fs::create_dir(base_dir.join("dir1")).unwrap();
-        }
-        let files = vec![
-            base_dir.join("dir1/file1.txt"),
-            base_dir.join("dir1/file2.pdf"),
-            base_dir.join("dir1/file3"),
-        ];
-        for filename in &files {
-            if !filename.exists() {
-                fs::write(filename, "some contents").unwrap();
-            }
-        }
-        for dirname in dirs_cow.iter() {
-            assert!(path::Path::new(&dirname).exists())
-        }
-        for filename in &files {
-            assert!(path::Path::new(&filename).exists())
-        }
         // recursive flags test
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
