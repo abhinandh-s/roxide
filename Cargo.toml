@@ -48,6 +48,10 @@ anyhow = "1.0.93"
 tempdir = "0.3.7"
 pretty_assertions = "1.4.1"
 
+[build-dependencies]
+clap = { version = "4.3.0", features = ["derive"] }
+clap_complete = "4.3.0"
+
 [profile.release]
 panic = 'abort'
 codegen-units = 1
