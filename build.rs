@@ -17,7 +17,7 @@ fn main() -> io::Result<()> {
 
 fn generate_completions() -> Result<()> {
     const BIN_NAME: &str = "roxide";
-    const OUT_DIR: &str = "contrib/completions";
+    const OUT_DIR: &str = "completions";
 
     let mut cmd = Cli::command();
     
