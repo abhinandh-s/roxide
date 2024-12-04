@@ -39,10 +39,11 @@ pub struct TrashMeta {
 }
 
 impl TrashMeta {
-    //    pub fn new(file_path: PathBuf, trash_path: PathBuf) -> Self {
-    //        Self { file_path, trash_path }
-    //    }
+    pub fn new(file_path: PathBuf, trash_path: PathBuf) -> Self {
+        Self { file_path, trash_path }
+    }
 }
+
 
 #[derive(Debug, PartialEq, PartialOrd)]
 pub struct History {
