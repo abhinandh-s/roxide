@@ -32,8 +32,6 @@ set edit:completion:arg-completer[roxide] = {|@words|
             cand --verbose 'Enable verbose output'
             cand -d 'remove empty directories'
             cand --dir 'remove empty directories'
-            cand -c 'Will check health of roxide in user env'
-            cand --check 'Will check health of roxide in user env'
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
             cand -V 'Print version'
