@@ -78,7 +78,6 @@ pub fn check_cross_device(item: &Path) -> RoError<'_, ()> {
 /// }
 /// ```
 pub fn check_root() -> bool {
-    use std::fs;
     if let Ok(status) = fs::read_to_string("/proc/self/status") {
         for line in status.lines() {
             if line.starts_with("Uid:") {
