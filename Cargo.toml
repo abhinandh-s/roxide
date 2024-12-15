@@ -31,7 +31,7 @@ extra_errors = []
 dev = []
 
 [dependencies]
-chrono = "0.4.38"
+chrono = "0.4.39"
 clap = { version = "4.5.23", features = ["derive"] }
 dirs = "5.0.1"
 env_logger = "0.11.5"
