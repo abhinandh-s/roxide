@@ -120,20 +120,20 @@ fn core_remove(args: &Cli, item: &Path) {
                                     item.display()
                                 );
                             }
-                           // NOTE: unstable
-                           // io::ErrorKind::ResourceBusy => {
-                           //     show_error!(
-                           //         "Resource is busy and cannot be moved: {}",
-                           //         item.display()
-                           //     );
-                           // }
-                           // io::ErrorKind::ReadOnlyFilesystem => {
-                           //     show_error!(
-                           //         "can't move. error: ReadOnly Filesystem: {}",
-                           //         item.display()
-                           //     );
-                           //     init_force_remove_with_prompt(item);
-                           // }
+                            // NOTE: unstable
+                            // io::ErrorKind::ResourceBusy => {
+                            //     show_error!(
+                            //         "Resource is busy and cannot be moved: {}",
+                            //         item.display()
+                            //     );
+                            // }
+                            // io::ErrorKind::ReadOnlyFilesystem => {
+                            //     show_error!(
+                            //         "can't move. error: ReadOnly Filesystem: {}",
+                            //         item.display()
+                            //     );
+                            //     init_force_remove_with_prompt(item);
+                            // }
                             _ => {
                                 println!("Error: {}", err);
                                 init_force_remove_with_prompt(item);
