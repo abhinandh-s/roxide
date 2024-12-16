@@ -20,7 +20,7 @@ fn generate_completions() -> Result<()> {
     const OUT_DIR: &str = "completions";
 
     let mut cmd = Cli::command();
-    
+
     for shell in [Shell::Bash, Shell::Zsh, Shell::Fish, Shell::Elvish] {
         generate_to(shell, &mut cmd, BIN_NAME, OUT_DIR)?;
     }
