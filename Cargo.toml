@@ -50,7 +50,7 @@ pretty_assertions = "1.4.1"
 
 [build-dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
-clap_complete = "4.5.38"
+clap_complete = "4.5.39"
 
 [profile.release]
 panic = 'abort'
