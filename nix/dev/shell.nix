@@ -5,6 +5,7 @@ with pkgs; mkShell {
   nativeBuildInputs = with pkgs.buildPackages; [ lua ];
   buildInputs = [
     openssl
+    unstable.act
     pkg-config
     llvmPackages.bintools
     eza
