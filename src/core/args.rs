@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 use std::path::PathBuf;
 
-#[derive(Parser)]
+#[derive(Parser, Default, Debug)]
 #[command(
     version,
     name = "roxide",
@@ -61,16 +61,17 @@ pub struct Cli {
     pub command: Option<Commands>,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
     /// revert the previous remove
-    Revert {},
+    Revert,
 }
 
 /// Enum, determining when the `rm` will prompt the user about the file deletion
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Default, Debug)]
 pub enum InteractiveMode {
     /// Never prompt
+    #[default]
     Never,
     /// Prompt once before removing more than three files
     /// or when removing recursivly.

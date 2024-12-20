@@ -335,12 +335,7 @@ mod test {
             recursive: true,
             #[cfg(feature = "extra_commands")]
             check: false,
-            dir: false,
-            force: None,
-            list: false,
-            verbose: true,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
         // panic!("{:#?}", dirs_cow);
         sleep(Duration::from_secs(1));
@@ -364,16 +359,9 @@ mod test {
 
         let args = Cli {
             file: Some(files.to_vec()),
-            interactive: None,
-            recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
-            force: None,
-            list: false,
-            verbose: false,
-            pattern: None,
-            command: None,
-            dir: false,
+            ..Default::default()
         };
 
         sleep(Duration::from_secs(1));
@@ -394,16 +382,10 @@ mod test {
 
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
-            interactive: None,
             recursive: true,
             #[cfg(feature = "extra_commands")]
             check: false,
-            dir: false,
-            force: None,
-            list: false,
-            verbose: false,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
 
         sleep(Duration::from_secs(1));
@@ -423,17 +405,10 @@ mod test {
 
         // force flags test
         let args = Cli {
-            file: None,
-            interactive: None,
-            recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
-            dir: false,
             force: Some(dirs_cow.to_vec()),
-            list: false,
-            verbose: false,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
 
         if let Some(forece_file) = args.force {
@@ -463,16 +438,11 @@ mod test {
 
         let args = Cli {
             file: Some(files_cow.to_vec()),
-            interactive: None,
             recursive: true,
             #[cfg(feature = "extra_commands")]
             check: false,
-            dir: false,
-            force: None,
             list: true,
-            verbose: false,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
 
         sleep(Duration::from_secs(1));
@@ -495,16 +465,10 @@ mod test {
         // no flags test
         let args = Cli {
             file: Some(files_cow.to_vec()),
-            interactive: None,
-            recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
-            dir: false,
-            force: None,
-            list: false,
-            verbose: false,
             pattern: Some("txt".to_string()),
-            command: None,
+            ..Default::default()
         };
 
         sleep(Duration::from_secs(1));
@@ -526,16 +490,10 @@ mod test {
         // recursive flags test
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
-            interactive: None,
-            recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
             dir: true,
-            force: None,
-            list: false,
-            verbose: false,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
 
         sleep(Duration::from_secs(1));
@@ -557,16 +515,10 @@ mod test {
 
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
-            interactive: None,
-            recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
             dir: true,
-            force: None,
-            list: false,
-            verbose: false,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
 
         sleep(Duration::from_secs(1));
@@ -588,16 +540,10 @@ mod test {
 
         let args = Cli {
             file: Some(dirs_cow.to_vec()),
-            interactive: None,
-            recursive: false,
             #[cfg(feature = "extra_commands")]
             check: false,
             dir: true,
-            force: None,
-            list: false,
-            verbose: false,
-            pattern: None,
-            command: None,
+            ..Default::default()
         };
         sleep(Duration::from_secs(1));
         let result = init_remove(dirs_cow.to_vec(), &args);
