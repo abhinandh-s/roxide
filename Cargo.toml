@@ -14,15 +14,15 @@ edition = "2021"
 [badges]
 maintenance = { status = "actively-developed" }
 
-# [[bin]]
-# bench = false
-# path = "src/main.rs"
-# name = "roxide"
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "roxide"
 
-# [[bin]]
-# bench = false
-# path = "src/main.rs"
-# name = "r"
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "r"
 
 [features]
 default = []
