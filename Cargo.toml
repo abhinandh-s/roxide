@@ -32,7 +32,7 @@ dev = []
 
 [dependencies]
 chrono = "0.4.40"
-clap = { version = "4.5.32", features = ["derive"] }
+clap = { version = "4.5.33", features = ["derive"] }
 dirs = "6.0.0"
 env_logger = "0.11.6"
 # cfg-if = { git = "https://github.com/rust-lang/cfg-if/" }
@@ -49,7 +49,7 @@ tempdir = "0.3.7"
 pretty_assertions = "1.4.1"
 
 [build-dependencies]
-clap = { version = "4.5.32", features = ["derive"] }
+clap = { version = "4.5.33", features = ["derive"] }
 clap_complete = "4.5.47"
 
 [profile.release]
