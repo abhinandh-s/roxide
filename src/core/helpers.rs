@@ -28,7 +28,15 @@ pub fn trash_dir() -> PathBuf {
 /// let formatted_time = current_time().format("%Y-%m-%d_%H:%M:%S").to_string();
 /// ```
 pub fn current_time() -> DateTime<Local> {
-    Local::now()
+    Time::now().0
+}
+
+pub struct Time(chrono::DateTime<chrono::Local>);
+
+impl Time {
+    pub fn now() -> Self {
+        Self(Local::now())
+    }
 }
 
 /// Splits the given `&Path` into directory path (prefix) and file name (suffix).

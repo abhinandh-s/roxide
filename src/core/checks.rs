@@ -53,7 +53,7 @@ pub fn check_cross_device(item: &Path) -> RoError<'_, ()> {
         .dev();
     // check if the devices are different
     if item_metadata != file_in_device {
-        return Err(crate::core::error::Error::CrossesDevices(item));
+        return Err(roxide::RoxError::CrossesDevices(item.to_path_buf()));
     }
     Ok(())
 }

@@ -24,7 +24,6 @@ impl ConfigFile {
    
         let binding = conf.to_string();
         let config = binding.as_bytes();
-        std::fs::File::open("").unwrap().write(config.clone()).unwrap();
     }
 }
 

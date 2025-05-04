@@ -103,7 +103,7 @@ impl PathFilter {
         }
         match &args.pattern {
             Some(pat) if files.is_empty() => {
-                return Err(crate::core::error::Error::PatternNoMatch(pat.to_string()));
+                return Err(roxide::RoxError::PatternNoMatch(pat.to_string()));
             }
             _ => {}
         }

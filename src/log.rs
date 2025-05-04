@@ -26,7 +26,7 @@ impl From<u64> for LogId {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct TrashLog {
+pub struct TrashLog {
     id: LogId,
     from: PathBuf,
     to: PathBuf,
@@ -70,6 +70,22 @@ impl LocalLogFile {
             return Ok(log_file);
         }
         Err(crate::RoxError::AnyError(anyhow::anyhow!("Failed to get Log file")).into())
+    }
+
+    pub fn write(_log: TrashLog) -> Result<(), Error> {
+        let log_file = LocalLogFile::new()?;
+        let mut _file = std::fs::OpenOptions::new().open(&log_file)?;
+        let con = std::fs::read_to_string(log_file)?;
+        let json: Vec<TrashLog> = serde_json::from_str(&con)?;
+
+        println!("{:#?}", json);
+
+        // writeln!(file, "{}", log.log_id.0)?;
+        // writeln!(file, "{}", log.metadata.file_path.to_string_lossy())?;
+        // writeln!(file, "{}", log.metadata.trash_path.to_string_lossy())?;
+        // writeln!(file, "----------------------------")?;
+
+        Ok(())
     }
 }
 // pub fn write(history: History) -> anyhow::Result<(), Error> {
@@ -138,31 +154,31 @@ pub trait HistoryOps {
 
 #[allow(dead_code)]
 impl TrashLog {
-    fn new(id: LogId, from: PathBuf, to: PathBuf) -> Self {
+    pub fn new(id: LogId, from: PathBuf, to: PathBuf) -> Self {
         Self { id, from, to }
     }
 
-    fn set_id(&mut self, id: LogId) {
+    pub fn set_id(&mut self, id: LogId) {
         self.id = id;
     }
 
-    fn id(&self) -> &LogId {
+    pub fn id(&self) -> &LogId {
         &self.id
     }
 
-    fn set_from(&mut self, from: PathBuf) {
+    pub fn set_from(&mut self, from: PathBuf) {
         self.from = from;
     }
 
-    fn from(&self) -> &PathBuf {
+    pub fn from(&self) -> &PathBuf {
         &self.from
     }
 
-    fn set_to(&mut self, to: PathBuf) {
+    pub fn set_to(&mut self, to: PathBuf) {
         self.to = to;
     }
 
-    fn to(&self) -> &PathBuf {
+    pub fn to(&self) -> &PathBuf {
         &self.to
     }
 }

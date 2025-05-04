@@ -10,25 +10,24 @@ use log::*;
 use roxide::{prompt_yes, show_error, verbose};
 
 use crate::core::checks::check_cross_device;
-use crate::utils::config::init_config;
-use crate::{
-    core::{
-        error::Error,
-        filter::PathFilter,
-        helpers::trash_dir,
-        history::{History, LogId, TrashMeta},
-        trash::Trash,
-    },
+use crate::core::{
+    filter::PathFilter,
+    helpers::trash_dir,
+    history::{History, LogId, TrashMeta},
+    trash::Trash,
 };
+use crate::utils::config::init_config;
+
+use roxide::RoxError as Error;
 
 use super::args::{Cli, InteractiveMode};
 use super::checks::check_root;
 
-pub type RoError<'a, T> = Result<T, super::error::Error<'a>>;
+pub type RoError<'a, T> = Result<T, Error>;
 
 fn init_checks(item: &Path) -> RoError<()> {
     if item.parent().is_none() && item.has_root() {
-        return Err(Error::IsRoot(item));
+        return Err(Error::IsRoot(item.to_path_buf()));
     }
     Ok(())
 }
@@ -196,16 +195,16 @@ fn handle_interactive_once(args: &Cli) -> bool {
 fn remove_empty_dir(path: &Path) {
     if path.exists() && path.is_dir() {
         let result = remove_dir(path);
-        match result {
-            Ok(_) => {}
-            Err(_) => {
-                eprintln!("{}", Error::DirectoryNotEmpty)
-            }
+        if let Err(result) = result {
+            eprintln!(
+                "{}",
+                roxide::RoxError::DirectoryNotEmpty(result.to_string())
+            )
         }
     } else if !path.exists() {
-        eprintln!("{}", Error::NoSuchFile(path))
+        eprintln!("{}", Error::NoSuchFile(path.to_path_buf()))
     } else if path.is_file() {
-        eprintln!("{}", Error::NotADirectory(path))
+        eprintln!("{}", Error::NotADirectory(path.to_path_buf()))
     }
 }
 
