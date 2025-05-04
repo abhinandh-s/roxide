@@ -24,7 +24,9 @@ function __fish_roxide_using_subcommand
 	contains -- $cmd[1] $argv
 end
 
-complete -c roxide -n "__fish_roxide_needs_command" -s i -l interactive -d 'whether to prompt before removals' -r -f -a "{never\t'Never prompt',once\t'Prompt once before removing more than three files or when removing recursivly',always\t'Prompt before every removal'}"
+complete -c roxide -n "__fish_roxide_needs_command" -s i -l interactive -d 'whether to prompt before removals' -r -f -a "never\t'Never prompt'
+once\t'Prompt once before removing more than three files or when removing recursivly'
+always\t'Prompt before every removal'"
 complete -c roxide -n "__fish_roxide_needs_command" -s p -l pattern -d 'remove files matching the pattern. revert will not work on patterns, provide -rp for recursive remove' -r
 complete -c roxide -n "__fish_roxide_needs_command" -s f -l force -d 'Forces deletion without moving files to the trash directory' -r -F
 complete -c roxide -n "__fish_roxide_needs_command" -s r -l recursive -d 'Remove directories and their contents recursively'
