@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use log::*;
+use roxide::{prompt_yes, show_error, verbose};
 
 use crate::core::checks::check_cross_device;
 use crate::utils::config::init_config;
@@ -18,7 +19,6 @@ use crate::{
         history::{History, LogId, TrashMeta},
         trash::Trash,
     },
-    prompt_yes, show_error, verbose,
 };
 
 use super::args::{Cli, InteractiveMode};

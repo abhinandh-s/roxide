@@ -1,11 +1,10 @@
 use chrono::{DateTime, Local};
 use log::*;
+use roxide::verbose;
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io;
 use std::path::Path;
-
-use crate::verbose;
 
 use super::args::Cli;
 use super::helpers::{current_time, trash_dir};

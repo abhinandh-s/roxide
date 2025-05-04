@@ -33,7 +33,7 @@ fn main() {
         }
     }
     match &cli.command {
-        Some(Commands::Revert {}) => {
+        Some(Commands::Revert) => {
             History::init_revert().unwrap();
         }
         None => {}

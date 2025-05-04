@@ -1,6 +1,9 @@
 ver := `grep '^version =' Cargo.toml | sed 's/version = "\(.*\)"/\1/'`
 
 dev:
+  nix develop ~/templates/rust --impure --command fish
+
+dev-local:
   nix develop ./nix/dev --command fish
 
 test:

@@ -5,9 +5,8 @@ use std::fs;
 use std::path::PathBuf;
 
 use log::*;
+use roxide::show_error;
 use walkdir::{DirEntry, WalkDir};
-
-use crate::show_error;
 
 use super::args::Cli;
 use super::rm::RoError;
@@ -20,7 +19,7 @@ impl PathFilter {
     pub fn matches_pattern(args: &Cli, filename: &OsStr) -> bool {
         args.pattern
             .as_deref()
-            .map(|pat| filename.to_str().map_or(false, |f| f.contains(pat)))
+            .map(|pat| filename.to_str().is_some_and(|f| f.contains(pat)))
             .unwrap_or(false)
     }
 
