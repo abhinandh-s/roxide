@@ -51,6 +51,8 @@ macro_rules! show_error(
 ///
 /// Example usage:
 /// ```
+/// use roxide::prompt_yes;
+///
 /// if prompt_yes!("Do you want to continue? (yes/y):") {
 ///     println!("Continuing...");
 /// } else {

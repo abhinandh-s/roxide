@@ -1,4 +1,4 @@
-#![allow(unused_labels, unused_imports)]
+#![allow(unused_labels)]
 
 use std::env::current_dir;
 use std::fs::{self, remove_dir, File};
@@ -7,21 +7,16 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use log::*;
-use roxide::{prompt_yes, show_error, verbose};
-
-use crate::core::checks::check_cross_device;
-use crate::core::{
-    filter::PathFilter,
-    helpers::trash_dir,
-    history::{History, LogId, TrashMeta},
-    trash::Trash,
+use roxide::filter::PathFilter;
+use roxide::{
+    check_cross_device, check_root, prompt_yes, show_error, trash_dir, verbose, Cli, ConfigFile, InteractiveMode
 };
-use crate::utils::config::init_config;
+
+use crate::core::history::{History, LogId, TrashMeta};
 
 use roxide::RoxError as Error;
 
-use super::args::{Cli, InteractiveMode};
-use super::checks::check_root;
+use super::history::Trash;
 
 pub type RoError<'a, T> = Result<T, Error>;
 
@@ -62,9 +57,9 @@ fn core_remove(args: &Cli, item: &Path) {
     let trash = Trash { file: item };
     let id = trash.get_log_id();
     let item_path = current_dir().unwrap().join(item);
-    let trash_path = trash_dir().join(trash.trash_name(id.1));
+    let trash_path = trash_dir().unwrap().join(trash.trash_name(id.1));
 
-    let config = init_config();
+    let config = ConfigFile::get_config().unwrap();
 
     if check_root() {
         trace!("is root user");
@@ -89,7 +84,9 @@ fn core_remove(args: &Cli, item: &Path) {
                 _ => {
                     let rename_result = fs::rename(
                         &item_path,
-                        trash_dir().join(trash.trash_name(trash.get_log_id().1)),
+                        trash_dir()
+                            .unwrap()
+                            .join(trash.trash_name(trash.get_log_id().1)),
                     );
                     match rename_result {
                         Ok(_) => {
@@ -99,6 +96,7 @@ fn core_remove(args: &Cli, item: &Path) {
                                     "Trashed {} to {}",
                                     item.display(),
                                     trash_dir()
+                                        .unwrap()
                                         .join(trash.trash_name(trash.get_log_id().1))
                                         .display()
                                 );
@@ -150,7 +148,7 @@ fn core_remove(args: &Cli, item: &Path) {
 }
 
 pub fn init_remove(items: Vec<PathBuf>, args: &Cli) -> RoError<()> {
-    let entries = match PathFilter::init(items, args) {
+    let entries = match PathFilter::filter(items, args) {
         Ok(filtered) => filtered,
         Err(e) => {
             eprintln!("{}", e);
@@ -251,20 +249,15 @@ fn handle_interactive(args: &Cli, item: &Path) {
 
 #[cfg(test)]
 mod test {
-    use std::borrow::Cow;
-    use std::fs::{remove_dir_all, File};
-    use std::path::{Path, PathBuf};
-    use std::thread::sleep;
-    use std::time::Duration;
-    use std::{fs, path};
+    use std::{
+        borrow::Cow,
+        fs::{self, remove_dir_all},
+        path::{self, Path, PathBuf},
+        thread::sleep,
+        time::Duration,
+    };
 
-    use dirs::data_dir;
-    use tempdir::TempDir;
-
-    use crate::core::args::Cli;
-    use crate::core::helpers::trash_dir;
-    use crate::core::rm::check_root;
-    use crate::utils::config::init_config;
+    use roxide::{check_root, Cli};
 
     use super::init_remove;
 

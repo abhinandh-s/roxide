@@ -46,6 +46,7 @@ toml = "0.8"
 walkdir = "2.5"
 sha2 = "0.10"
 anyhow = "1.0"
+miette = { version = "7.6.0", features = ["fancy"] }
 
 [dev-dependencies]
 anyhow = "1.0"

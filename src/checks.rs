@@ -3,9 +3,10 @@ use std::fs::{self, create_dir_all};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+use anyhow::{Error, Result};
 use dirs::cache_dir;
 
-use super::rm::RoError;
+use crate::RoxError;
 
 /// This function checks if an item is located on a different device than the trash directory.
 ///
@@ -30,30 +31,31 @@ use super::rm::RoError;
 ///
 /// # Example
 /// ```rust
+/// use std::path::Path;
+/// use roxide::check_cross_device;
+///
 /// let result = check_cross_device(Path::new("/path/to/file"));
 /// match result {
 ///     Ok(_) => println!("The item is on the same device."),
 ///     Err(e) => println!("Error: {}", e),
 /// }
 /// ```
-pub fn check_cross_device(item: &Path) -> RoError<'_, ()> {
-    let item_metadata = fs::metadata(item).unwrap().dev();
-    // we need to create a file with trash name to check this
-    create_dir_all(cache_dir().unwrap().join("roxide")).unwrap();
+pub fn check_cross_device(item: &Path) -> Result<(), Error> {
+    let item_metadata = fs::metadata(item)?.dev();
+
+    let cache_dir = cache_dir()
+        .ok_or(RoxError::CantFindCacheDir)?
+        .join("roxide");
+
+    create_dir_all(&cache_dir)?;
     write(
-        cache_dir().unwrap().join("roxide/state.txt"),
+        cache_dir.join("state.txt"),
         "Just a file to check CrossesDevices Error.",
-    )
-    .unwrap();
-    let file_in_device = cache_dir()
-        .unwrap()
-        .join("roxide/state.txt")
-        .metadata()
-        .unwrap()
-        .dev();
+    )?;
+    let file_in_device = cache_dir.join("state.txt").metadata()?.dev();
     // check if the devices are different
     if item_metadata != file_in_device {
-        return Err(roxide::RoxError::CrossesDevices(item.to_path_buf()));
+        return Err(RoxError::CrossesDevices(item.to_path_buf()).into());
     }
     Ok(())
 }
@@ -71,6 +73,8 @@ pub fn check_cross_device(item: &Path) -> RoError<'_, ()> {
 ///
 /// # Example
 /// ```rust
+/// use roxide::check_root;
+///
 /// if check_root() {
 ///     println!("The process is running as root.");
 /// } else {
@@ -90,6 +94,7 @@ pub fn check_root() -> bool {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod test {
     use std::fs::{create_dir_all, remove_dir_all};
     use std::path;

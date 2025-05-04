@@ -31,18 +31,18 @@ _roxide() {
 
     case "${cmd}" in
         roxide)
-            opts="-r -l -i -p -f -v -d -c -h -V --recursive --list --interactive --pattern --force --verbose --dir --check --help --version [FILE]... revert help"
+            opts="-r -l -i -p -f -v -d -h -V --recursive --list --interactive --pattern --force --verbose --dir --help --version [FILE]... revert help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --interactive)
-                    COMPREPLY=($(compgen -W "never once always prompt-protected" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "never once always" -- "${cur}"))
                     return 0
                     ;;
                 -i)
-                    COMPREPLY=($(compgen -W "never once always prompt-protected" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "never once always" -- "${cur}"))
                     return 0
                     ;;
                 --pattern)

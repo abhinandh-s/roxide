@@ -1,15 +1,11 @@
 use clap::Parser;
+use roxide::{Cli, Commands};
 
 use std::{fs, path::Path};
 
-use self::core::{
-    args::{Cli, Commands},
-    history::History,
-    rm::init_remove,
-};
+use self::core::{history::History, rm::init_remove};
 
 pub mod core;
-pub mod utils;
 
 fn main() {
     env_logger::init();

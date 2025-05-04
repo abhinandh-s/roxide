@@ -1,10 +1,12 @@
 use std::{io, path::PathBuf};
 
 use thiserror::Error;
+use miette::Diagnostic;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Diagnostic)]
 pub enum RoxError {
-    #[error("Error: {0}")]
+    #[error(transparent)]
+    #[diagnostic(code(roxide::io_error))]
     IoError(#[from] io::Error),
     #[error("`{0}` is located on a different device. Can't move item to trash dir.")]
     CrossesDevices(PathBuf),
@@ -26,6 +28,11 @@ pub enum RoxError {
     WriteProtected(PathBuf),
     #[error("Permission denied `{0}` is write-protected")]
     PatternNoMatch(String),
-    #[error("Error: {0}")]
+    #[error(transparent)]
+    #[diagnostic(code(roxide::any_error))]
     AnyError(#[from] anyhow::Error),
+    #[error("Error: can't find cache dir")]
+    CantFindCacheDir,
+    #[error("Error: can't find config dir")]
+    CantFindConfigDir,
 }

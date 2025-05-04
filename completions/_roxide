@@ -17,12 +17,10 @@ _roxide() {
     _arguments "${_arguments_options[@]}" : \
 '-i+[whether to prompt before removals]:INTERACTIVE:((never\:"Never prompt"
 once\:"Prompt once before removing more than three files or when removing recursivly"
-always\:"Prompt before every removal"
-prompt-protected\:"Prompt only on write-protected files"))' \
+always\:"Prompt before every removal"))' \
 '--interactive=[whether to prompt before removals]:INTERACTIVE:((never\:"Never prompt"
 once\:"Prompt once before removing more than three files or when removing recursivly"
-always\:"Prompt before every removal"
-prompt-protected\:"Prompt only on write-protected files"))' \
+always\:"Prompt before every removal"))' \
 '-p+[remove files matching the pattern. revert will not work on patterns, provide -rp for recursive remove]:PATTERN:_default' \
 '--pattern=[remove files matching the pattern. revert will not work on patterns, provide -rp for recursive remove]:PATTERN:_default' \
 '*-f+[Forces deletion without moving files to the trash directory]:FILE:_files' \
@@ -35,8 +33,6 @@ prompt-protected\:"Prompt only on write-protected files"))' \
 '--verbose[Enable verbose output]' \
 '-d[remove empty directories]' \
 '--dir[remove empty directories]' \
-'-c[Will check health of roxide in user env]' \
-'--check[Will check health of roxide in user env]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 '-V[Print version]' \

@@ -2,7 +2,7 @@ use clap::CommandFactory;
 use clap_complete::{generate_to, Shell};
 use std::io::{self, Result};
 
-include!("src/core/args.rs");
+include!("src/args.rs");
 
 fn main() -> io::Result<()> {
     // Tell Cargo to rerun this script if `build.rs` changes
