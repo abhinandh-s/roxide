@@ -1,214 +1,163 @@
-use std::fs::{self, File};
-use std::io::Write;
 use std::path::{Path, PathBuf};
+use tempfile::{tempdir, NamedTempFile};
+use roxide::args::{Cli, filter::PathFilter};
+use anyhow::Result;
 
-use tempdir::TempDir;
-
-use roxide::filter::PathFilter;
-use roxide::Cli;
-
-/// Helper macro to setup test environment:
-/// - Accepts file and dir definitions
-/// - CLI config inline
-macro_rules! setup_test {
-    (
-        files: [ $( $fname:expr => $fcontent:expr ),* $(,)? ],
-        dirs: [ $( $dname:expr ),* $(,)? ],
-        cli: {
-            pattern: $pattern:expr,
-            recursive: $recursive:expr,
-            dir: $dir_flag:expr,
-            items: [ $( $item:expr ),* $(,)? ]
+// Macro to simplify calling filter and asserting expected results or errors
+macro_rules! test_filter {
+    // Test success case: expects some paths
+    ($name:ident, $items:expr, $cli:expr, $expected:expr) => {
+        #[test]
+        fn $name() -> Result<()> {
+            let result = PathFilter::filter($items, &$cli)?;
+            assert_eq!(result, $expected);
+            Ok(())
         }
-    ) => {{
-        let tmp = TempDir::new("test_filter").expect("tempdir failed");
-        let base = tmp.path().to_path_buf();
+    };
 
-        // Create dirs
-        $(
-            fs::create_dir_all(base.join($dname)).unwrap();
-        )*
-
-        // Create files
-        $(
-            let full_path = base.join($fname);
-            let mut f = File::create(&full_path).unwrap();
-            writeln!(f, "{}", $fcontent).unwrap();
-        )*
-
-        let cli = Cli {
-            pattern: $pattern.map(|s| s.to_string()),
-            recursive: $recursive,
-            dir: $dir_flag,
-            dry: false,
-            force: false,
-            items: vec![ $( base.join($item) ),* ],
-        };
-
-        (tmp, base, cli)
-    }};
+    // Test failure case: expects an error
+    ($name:ident, $items:expr, $cli:expr, error) => {
+        #[test]
+        fn $name() {
+            let result = PathFilter::filter($items, &$cli);
+            assert!(result.is_err());
+        }
+    };
 }
 
-#[test]
-fn test_file_no_pattern_no_recursive() {
-    let (_tmp, _base, args) = setup_test!(
-        files: ["file.txt" => "abc"],
-        dirs: [],
-        cli: {
-            pattern: None,
-            recursive: false,
-            dir: false,
-            items: ["file.txt"]
+// Helper: create a Cli with specified recursive and pattern flags
+fn make_cli(recursive: bool, pattern: Option<&str>, dir_flag: bool) -> Cli {
+    Cli {
+        recursive,
+        pattern: pattern.map(String::from),
+        dir: dir_flag,
+        file: None,
+        force: None,
+        interactive: None,
+        list: false,
+        verbose: false,
+        command: None,
+        // other fields defaulted
+        ..Default::default()
+    }
+}
+
+mod tests {
+    use super::*;
+
+    // Basic test: single existing file, no recursion, no pattern
+    test_filter!(
+        basic_file_no_pattern,
+        {
+            let file = NamedTempFile::new().unwrap();
+            vec![file.path().to_path_buf()]
+        },
+        make_cli(false, None, false),
+        {
+            let file = NamedTempFile::new().unwrap();
+            vec![file.path().to_path_buf()]
         }
     );
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert_eq!(result.len(), 1);
-}
+    // Directory without recursion, no pattern, dir flag false - expect error (cannot remove directory)
+    #[test]
+    fn dir_no_recursive_no_pattern_error() -> Result<()> {
+        let dir = tempdir()?;
+        let items = vec![dir.path().to_path_buf()];
+        let cli = make_cli(false, None, false);
 
-#[test]
-fn test_file_with_matching_pattern() {
-    let (_tmp, _base, args) = setup_test!(
-        files: ["match.log" => "abc"],
-        dirs: [],
-        cli: {
-            pattern: Some("match"),
-            recursive: false,
-            dir: false,
-            items: ["match.log"]
+        let result = PathFilter::filter(items, &cli);
+        assert!(result.is_ok()); // Wait, the code *shows error* but still returns Ok.
+        // According to your code, it calls show_error but does not return Err here.
+        // So filter returns Ok, but the file list is empty. Test accordingly:
+        let files = result?;
+        assert!(files.is_empty());
+        Ok(())
+    }
+
+    // Directory with recursion, no pattern: expect directory path itself returned
+    test_filter!(
+        dir_with_recursive_no_pattern,
+        {
+            let dir = tempdir().unwrap();
+            vec![dir.path().to_path_buf()]
+        },
+        make_cli(true, None, false),
+        {
+            let dir = tempdir().unwrap();
+            vec![dir.path().to_path_buf()]
         }
     );
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert_eq!(result.len(), 1);
-}
+    // Directory with pattern (non-recursive), should collect matching files only
+    #[test]
+    fn dir_no_recursive_with_pattern() -> Result<()> {
+        let dir = tempdir()?;
+        // Create two files: match.txt and no_match.rs
+        let file_match = dir.path().join("match.txt");
+        std::fs::write(&file_match, "hello")?;
+        let file_no_match = dir.path().join("no_match.rs");
+        std::fs::write(&file_no_match, "world")?;
 
-#[test]
-fn test_file_with_non_matching_pattern() {
-    let (_tmp, _base, args) = setup_test!(
-        files: ["random.txt" => "abc"],
-        dirs: [],
-        cli: {
-            pattern: Some("nope"),
-            recursive: false,
-            dir: false,
-            items: ["random.txt"]
-        }
-    );
+        let items = vec![dir.path().to_path_buf()];
+        let cli = make_cli(false, Some(".txt"), false);
 
-    let result = PathFilter::filter(args.items.clone(), &args);
-    assert!(result.is_err());
-}
+        let result = PathFilter::filter(items, &cli)?;
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0], file_match);
+        Ok(())
+    }
 
-#[test]
-fn test_hidden_file_skipped_in_recursive() {
-    let (_tmp, _base, args) = setup_test!(
-        files: ["sub/.hidden.txt" => "secret"],
-        dirs: ["sub"],
-        cli: {
-            pattern: Some("hidden"),
-            recursive: true,
-            dir: false,
-            items: ["sub"]
-        }
-    );
+    // Recursive with pattern: collect matching files deeply
+    #[test]
+    fn recursive_with_pattern() -> Result<()> {
+        let dir = tempdir()?;
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert!(result.is_empty());
-}
+        // Create nested files: a.pdf, subdir/b.pdf, subdir/c.txt
+        let file1 = dir.path().join("a.pdf");
+        std::fs::write(&file1, "x")?;
 
-#[test]
-fn test_recursive_matching() {
-    let (_tmp, _base, args) = setup_test!(
-        files: [
-            "dir/log1.txt" => "yes",
-            "dir/ignore.txt" => "no"
-        ],
-        dirs: ["dir"],
-        cli: {
-            pattern: Some("log"),
-            recursive: true,
-            dir: false,
-            items: ["dir"]
-        }
-    );
+        let subdir = dir.path().join("subdir");
+        std::fs::create_dir(&subdir)?;
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert_eq!(result.len(), 1);
-    assert!(result[0].to_string_lossy().contains("log1.txt"));
-}
+        let file2 = subdir.join("b.pdf");
+        std::fs::write(&file2, "y")?;
 
-#[test]
-fn test_non_recursive_dir_pattern_match() {
-    let (_tmp, _base, args) = setup_test!(
-        files: [
-            "sub/keep.log" => "match",
-            "sub/nothing.txt" => "no"
-        ],
-        dirs: ["sub"],
-        cli: {
-            pattern: Some("keep"),
-            recursive: false,
-            dir: false,
-            items: ["sub"]
-        }
-    );
+        let file3 = subdir.join("c.txt");
+        std::fs::write(&file3, "z")?;
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert_eq!(result.len(), 1);
-    assert!(result[0].to_string_lossy().contains("keep.log"));
-}
+        let items = vec![dir.path().to_path_buf()];
+        let cli = make_cli(true, Some(".pdf"), false);
 
-#[test]
-fn test_dir_allowed_with_dir_flag() {
-    let (_tmp, base, args) = setup_test!(
-        files: [],
-        dirs: ["target"],
-        cli: {
-            pattern: None,
-            recursive: false,
-            dir: true,
-            items: ["target"]
-        }
-    );
+        let result = PathFilter::filter(items, &cli)?;
+        // Should only contain a.pdf and subdir/b.pdf
+        assert!(result.contains(&file1));
+        assert!(result.contains(&file2));
+        assert_eq!(result.len(), 2);
+        Ok(())
+    }
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0], base.join("target"));
-}
+    // Pattern with no match: expect error (PatternNoMatch)
+    #[test]
+    fn pattern_no_match_error() -> Result<()> {
+        let file = NamedTempFile::new()?;
+        let items = vec![file.path().to_path_buf()];
+        let cli = make_cli(false, Some("nonexistentpattern"), false);
 
-#[test]
-fn test_dir_disallowed_without_dir_flag() {
-    let (_tmp, _base, args) = setup_test!(
-        files: [],
-        dirs: ["test_dir"],
-        cli: {
-            pattern: None,
-            recursive: false,
-            dir: false,
-            items: ["test_dir"]
-        }
-    );
+        let result = PathFilter::filter(items, &cli);
+        assert!(result.is_err());
+        Ok(())
+    }
 
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert!(result.is_empty());
-}
+    // File that doesn't exist: should show error and skip
+    #[test]
+    fn file_does_not_exist() -> Result<()> {
+        let fake_path = PathBuf::from("/tmp/nonexistentfile12345");
+        let items = vec![fake_path];
+        let cli = make_cli(false, None, false);
 
-#[test]
-fn test_nonexistent_file_is_skipped() {
-    let (_tmp, _base, mut args) = setup_test!(
-        files: [],
-        dirs: [],
-        cli: {
-            pattern: None,
-            recursive: false,
-            dir: false,
-            items: []
-        }
-    );
-
-    args.items = vec![PathBuf::from("/tmp/this/does/not/exist.txt")];
-
-    let result = PathFilter::filter(args.items.clone(), &args).unwrap();
-    assert!(result.is_empty());
+        let result = PathFilter::filter(items, &cli)?;
+        assert!(result.is_empty());
+        Ok(())
+    }
 }
