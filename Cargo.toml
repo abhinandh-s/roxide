@@ -51,6 +51,7 @@ miette = { version = "7.6.0", features = ["fancy"] }
 [dev-dependencies]
 anyhow = "1.0"
 tempdir = "0.3"
+tempfile = "3" 
 pretty_assertions = "1.4"
 
 [build-dependencies]
