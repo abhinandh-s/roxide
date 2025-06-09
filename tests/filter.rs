@@ -1,6 +1,6 @@
 // tests/filter.rs
 
-use roxide::{Cli, filter_path};
+use roxide::{Cli, filter::filter_path};
 
 #[test]
 fn test_filter_path() {
