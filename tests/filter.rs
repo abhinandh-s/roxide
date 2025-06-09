@@ -1,163 +1,205 @@
+// tests/filter.rs
+use std::fs::{self, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use tempfile::{tempdir, NamedTempFile};
-use roxide::args::{Cli, filter::PathFilter};
+use tempfile::tempdir;
+
 use anyhow::Result;
+use roxide::args::{filter::PathFilter, Cli, RoxError};
 
-// Macro to simplify calling filter and asserting expected results or errors
-macro_rules! test_filter {
-    // Test success case: expects some paths
-    ($name:ident, $items:expr, $cli:expr, $expected:expr) => {
-        #[test]
-        fn $name() -> Result<()> {
-            let result = PathFilter::filter($items, &$cli)?;
-            assert_eq!(result, $expected);
-            Ok(())
-        }
-    };
-
-    // Test failure case: expects an error
-    ($name:ident, $items:expr, $cli:expr, error) => {
-        #[test]
-        fn $name() {
-            let result = PathFilter::filter($items, &$cli);
-            assert!(result.is_err());
+/// Helper macro to create a Cli instance with minimal required args,
+/// avoiding repeated boilerplate when testing different flags.
+macro_rules! make_cli {
+    (
+        recursive: $recursive:expr,
+        pattern: $pattern:expr,
+        dir: $dir:expr
+    ) => {
+        Cli {
+            file: None,
+            recursive: $recursive,
+            list: false,
+            interactive: None,
+            pattern: $pattern.map(|s| s.to_string()),
+            force: None,
+            verbose: false,
+            dir: $dir,
+            #[cfg(feature = "extra_commands")]
+            check: false,
+            command: None,
         }
     };
 }
 
-// Helper: create a Cli with specified recursive and pattern flags
-fn make_cli(recursive: bool, pattern: Option<&str>, dir_flag: bool) -> Cli {
-    Cli {
-        recursive,
-        pattern: pattern.map(String::from),
-        dir: dir_flag,
-        file: None,
-        force: None,
-        interactive: None,
-        list: false,
-        verbose: false,
-        command: None,
-        // other fields defaulted
-        ..Default::default()
-    }
+/// Creates a file at the specified path with some dummy content.
+fn create_file(path: &Path) {
+    let mut f = File::create(path).expect("Failed to create file");
+    writeln!(f, "dummy content").expect("Failed to write to file");
 }
 
-mod tests {
-    use super::*;
+/// Creates a hidden file (starting with '.') at the specified path.
+fn create_hidden_file(path: &Path) {
+    let hidden_path = path.with_file_name(format!(".{}", path.file_name().unwrap().to_string_lossy()));
+    create_file(&hidden_path);
+}
 
-    // Basic test: single existing file, no recursion, no pattern
-    test_filter!(
-        basic_file_no_pattern,
-        {
-            let file = NamedTempFile::new().unwrap();
-            vec![file.path().to_path_buf()]
-        },
-        make_cli(false, None, false),
-        {
-            let file = NamedTempFile::new().unwrap();
-            vec![file.path().to_path_buf()]
+#[test]
+/// Tests `filter` with a non-recursive call on a single file without pattern.
+/// Should return the file itself in the result vector.
+fn test_filter_single_file_no_pattern() -> Result<()> {
+    let dir = tempdir()?;
+    let file_path = dir.path().join("file.txt");
+    create_file(&file_path);
+
+    let cli = make_cli!(recursive: false, pattern: None, dir: false);
+    let result = PathFilter::filter(vec![file_path.clone()], &cli)?;
+
+    assert_eq!(result, vec![file_path]);
+    Ok(())
+}
+
+#[test]
+/// Tests non-recursive directory removal with `dir = true`.
+/// Should include the directory itself if `dir` flag is set.
+fn test_filter_non_recursive_dir_with_dir_flag() -> Result<()> {
+    let dir = tempdir()?;
+    let sub_dir = dir.path().join("subdir");
+    fs::create_dir(&sub_dir)?;
+
+    let cli = make_cli!(recursive: false, pattern: None, dir: true);
+    let result = PathFilter::filter(vec![sub_dir.clone()], &cli)?;
+
+    assert_eq!(result, vec![sub_dir]);
+    Ok(())
+}
+
+#[test]
+/// Tests non-recursive directory removal without `dir` flag.
+/// Should NOT include the directory and show error (captured manually).
+fn test_filter_non_recursive_dir_without_dir_flag() -> Result<()> {
+    let dir = tempdir()?;
+    let sub_dir = dir.path().join("subdir");
+    fs::create_dir(&sub_dir)?;
+
+    let cli = make_cli!(recursive: false, pattern: None, dir: false);
+    let result = PathFilter::filter(vec![sub_dir.clone()], &cli);
+
+    // Directory is not included, error is logged via show_error macro internally.
+    // We expect Ok with empty vec or error handling.
+    assert!(result.is_ok());
+    let files = result.unwrap();
+    assert!(files.is_empty());
+    Ok(())
+}
+
+#[test]
+/// Tests recursive pattern matching: only files matching pattern get filtered.
+/// Should descend into directory tree and exclude hidden files.
+fn test_filter_recursive_with_pattern() -> Result<()> {
+    let dir = tempdir()?;
+    let sub_dir = dir.path().join("subdir");
+    fs::create_dir(&sub_dir)?;
+
+    let file1 = sub_dir.join("keep.pdf");
+    let file2 = sub_dir.join("skip.txt");
+    create_file(&file1);
+    create_file(&file2);
+
+    // hidden file, should be skipped
+    create_hidden_file(&sub_dir.join("hidden.pdf"));
+
+    let cli = make_cli!(recursive: true, pattern: Some(".pdf"), dir: false);
+    let result = PathFilter::filter(vec![sub_dir.clone()], &cli)?;
+
+    assert!(result.contains(&file1));
+    assert!(!result.contains(&file2));
+    // hidden files excluded
+    assert_eq!(result.len(), 1);
+    Ok(())
+}
+
+#[test]
+/// Tests non-recursive with pattern on a directory: should only match files directly inside.
+/// Should exclude directories and hidden files.
+fn test_filter_non_recursive_with_pattern_dir() -> Result<()> {
+    let dir = tempdir()?;
+    let sub_dir = dir.path().join("subdir");
+    fs::create_dir(&sub_dir)?;
+
+    let file1 = sub_dir.join("keep.pdf");
+    let file2 = sub_dir.join("skip.txt");
+    create_file(&file1);
+    create_file(&file2);
+    create_hidden_file(&sub_dir.join("hidden.pdf"));
+
+    let cli = make_cli!(recursive: false, pattern: Some(".pdf"), dir: false);
+    let result = PathFilter::filter(vec![sub_dir.clone()], &cli)?;
+
+    assert!(result.contains(&file1));
+    assert!(!result.contains(&file2));
+    assert_eq!(result.len(), 1);
+    Ok(())
+}
+
+#[test]
+/// Tests that pattern with no matches returns an error of type PatternNoMatch.
+fn test_filter_pattern_no_match_error() -> Result<()> {
+    let dir = tempdir()?;
+    let file_path = dir.path().join("file.txt");
+    create_file(&file_path);
+
+    let cli = make_cli!(recursive: false, pattern: Some(".pdf"), dir: false);
+    let err = PathFilter::filter(vec![file_path], &cli).unwrap_err();
+
+    let err_str = format!("{:?}", err);
+    assert!(err_str.contains("PatternNoMatch"));
+    Ok(())
+}
+
+#[test]
+/// Tests filtering on a non-existent path: should skip and not panic.
+fn test_filter_non_existent_path() -> Result<()> {
+    let non_existent = PathBuf::from("/non/existent/path");
+
+    let cli = make_cli!(recursive: false, pattern: None, dir: false);
+    let result = PathFilter::filter(vec![non_existent], &cli)?;
+
+    // Should just return empty vec, no panic
+    assert!(result.is_empty());
+    Ok(())
+}
+
+#[test]
+/// Tests the matches_pattern utility function directly.
+/// Should detect if filename contains the pattern substring.
+fn test_matches_pattern() {
+    let cli = make_cli!(recursive: false, pattern: Some(".txt"), dir: false);
+    let file_name = std::ffi::OsStr::new("file.txt");
+    let no_match = std::ffi::OsStr::new("file.pdf");
+
+    assert!(PathFilter::matches_pattern(&cli, file_name));
+    assert!(!PathFilter::matches_pattern(&cli, no_match));
+
+    // Pattern None always returns false
+    let cli_no_pattern = make_cli!(recursive: false, pattern: None, dir: false);
+    assert!(!PathFilter::matches_pattern(&cli_no_pattern, file_name));
+}
+
+#[test]
+/// Tests that hidden files are properly detected and filtered out in recursive walks.
+fn test_is_hidden_filtering() -> Result<()> {
+    use walkdir::DirEntry;
+    use std::fs;
+
+    let dir = tempdir()?;
+    let hidden_file = dir.path().join(".hiddenfile");
+    create_file(&hidden_file);
+
+    let walker = walkdir::WalkDir::new(dir.path());
+    for entry in walker.into_iter().filter_map(|e| e.ok()) {
+        if entry.file_name() == ".hiddenfile" {
+            assert!(PathFilter::is_hidden(&entry));
         }
-    );
-
-    // Directory without recursion, no pattern, dir flag false - expect error (cannot remove directory)
-    #[test]
-    fn dir_no_recursive_no_pattern_error() -> Result<()> {
-        let dir = tempdir()?;
-        let items = vec![dir.path().to_path_buf()];
-        let cli = make_cli(false, None, false);
-
-        let result = PathFilter::filter(items, &cli);
-        assert!(result.is_ok()); // Wait, the code *shows error* but still returns Ok.
-        // According to your code, it calls show_error but does not return Err here.
-        // So filter returns Ok, but the file list is empty. Test accordingly:
-        let files = result?;
-        assert!(files.is_empty());
-        Ok(())
     }
-
-    // Directory with recursion, no pattern: expect directory path itself returned
-    test_filter!(
-        dir_with_recursive_no_pattern,
-        {
-            let dir = tempdir().unwrap();
-            vec![dir.path().to_path_buf()]
-        },
-        make_cli(true, None, false),
-        {
-            let dir = tempdir().unwrap();
-            vec![dir.path().to_path_buf()]
-        }
-    );
-
-    // Directory with pattern (non-recursive), should collect matching files only
-    #[test]
-    fn dir_no_recursive_with_pattern() -> Result<()> {
-        let dir = tempdir()?;
-        // Create two files: match.txt and no_match.rs
-        let file_match = dir.path().join("match.txt");
-        std::fs::write(&file_match, "hello")?;
-        let file_no_match = dir.path().join("no_match.rs");
-        std::fs::write(&file_no_match, "world")?;
-
-        let items = vec![dir.path().to_path_buf()];
-        let cli = make_cli(false, Some(".txt"), false);
-
-        let result = PathFilter::filter(items, &cli)?;
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0], file_match);
-        Ok(())
-    }
-
-    // Recursive with pattern: collect matching files deeply
-    #[test]
-    fn recursive_with_pattern() -> Result<()> {
-        let dir = tempdir()?;
-
-        // Create nested files: a.pdf, subdir/b.pdf, subdir/c.txt
-        let file1 = dir.path().join("a.pdf");
-        std::fs::write(&file1, "x")?;
-
-        let subdir = dir.path().join("subdir");
-        std::fs::create_dir(&subdir)?;
-
-        let file2 = subdir.join("b.pdf");
-        std::fs::write(&file2, "y")?;
-
-        let file3 = subdir.join("c.txt");
-        std::fs::write(&file3, "z")?;
-
-        let items = vec![dir.path().to_path_buf()];
-        let cli = make_cli(true, Some(".pdf"), false);
-
-        let result = PathFilter::filter(items, &cli)?;
-        // Should only contain a.pdf and subdir/b.pdf
-        assert!(result.contains(&file1));
-        assert!(result.contains(&file2));
-        assert_eq!(result.len(), 2);
-        Ok(())
-    }
-
-    // Pattern with no match: expect error (PatternNoMatch)
-    #[test]
-    fn pattern_no_match_error() -> Result<()> {
-        let file = NamedTempFile::new()?;
-        let items = vec![file.path().to_path_buf()];
-        let cli = make_cli(false, Some("nonexistentpattern"), false);
-
-        let result = PathFilter::filter(items, &cli);
-        assert!(result.is_err());
-        Ok(())
-    }
-
-    // File that doesn't exist: should show error and skip
-    #[test]
-    fn file_does_not_exist() -> Result<()> {
-        let fake_path = PathBuf::from("/tmp/nonexistentfile12345");
-        let items = vec![fake_path];
-        let cli = make_cli(false, None, false);
-
-        let result = PathFilter::filter(items, &cli)?;
-        assert!(result.is_empty());
-        Ok(())
-    }
+    Ok(())
 }
