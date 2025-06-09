@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 
 use anyhow::Result;
-use roxide::args::{filter::PathFilter, Cli, RoxError};
+use roxide::{filter::PathFilter, Cli, RoxError};
 
 /// Helper macro to create a Cli instance with minimal required args,
 /// avoiding repeated boilerplate when testing different flags.
