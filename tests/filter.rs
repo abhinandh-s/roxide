@@ -1,6 +1,6 @@
 // tests/filter.rs
 
-use roxide::{Cli, filter::filter};
+use roxide::{Cli, filter::PathFilter};
 
 #[test]
 fn test_filter_path() {
@@ -20,11 +20,11 @@ fn test_filter_path() {
     };
 
     // Should match path containing "test"
-    assert!(filter("mytestfile.txt", &cli_with_pattern));
+    assert!(PathFilter::filter("mytestfile.txt", &cli_with_pattern));
 
     // Should not match path without "test"
-    assert!(!filter("myfile.txt", &cli_with_pattern));
+    assert!(!PathFilter::filter("myfile.txt", &cli_with_pattern));
 
     // Without pattern, always true
-    assert!(filter("anything.txt", &cli_no_pattern));
+    assert!(PathFilter::filter("anything.txt", &cli_no_pattern));
 }
