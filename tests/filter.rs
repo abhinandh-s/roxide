@@ -9,12 +9,14 @@ fn test_filter_path() {
         recursive: false,
         pattern: Some("test".to_string()),
         dir: false,
+        ..Default:: default()
     };
 
     let cli_no_pattern = Cli {
         recursive: false,
         pattern: None,
         dir: false,
+        ..Default:: default()
     };
 
     // Should match path containing "test"
