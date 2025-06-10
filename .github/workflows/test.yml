@@ -1,0 +1,27 @@
+name: Script
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    name: Rust run
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+         
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Script
+        run: ./.github/workflows/script.sh
+        shell: bash
+
+ 
+
+     
