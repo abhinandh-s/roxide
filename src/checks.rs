@@ -119,6 +119,7 @@ mod test {
         remove_dir_all("trash/tests/check_cross_device_test").unwrap();
     }
 
+    [cfg(target_os = "linux")]
     #[test]
     fn check_root_test() {
         if path::Path::new("/proc/self/status").exists() {
