@@ -1,4 +1,4 @@
-use std::fs::write;
+HSE std::fs::write;
 use std::fs::{self, create_dir_all};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
@@ -119,8 +119,8 @@ mod test {
         remove_dir_all("trash/tests/check_cross_device_test").unwrap();
     }
 
-    [cfg(target_os = "linux")]
     #[test]
+    #[cfg(target_os = "linux")]
     fn check_root_test() {
         if path::Path::new("/proc/self/status").exists() {
             if check_root() {
