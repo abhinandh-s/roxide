@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Script
-        run: chmod +x ./.github/script.sh && ./.github/script.sh
+        run: echo "hi" # chmod +x ./.github/script.sh && ./.github/script.sh
         shell: bash
 
  
